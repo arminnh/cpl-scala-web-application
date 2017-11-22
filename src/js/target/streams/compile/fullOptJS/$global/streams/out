@@ -1,0 +1,19 @@
+[info] Full optimizing /home/bob/Dropbox/CPL/Scala/Project/js/target/scala-2.11/js-opt.js
+[debug] Linker: Compute reachability: 455390 us
+[debug] Linker: Assemble LinkedClasses: 386097 us
+[debug] Basic Linking: 864219 us
+[debug] Inc. optimizer: Batch mode: true
+[debug] Inc. optimizer: Incremental part: 370375 us
+[debug] Inc. optimizer: Optimizing 802 methods.
+[debug] Inc. optimizer: Optimizer part: 547997 us
+[debug] Inc. optimizer: 977147 us
+[debug] Refiner: Compute reachability: 124953 us
+[debug] Refiner: Assemble LinkedClasses: 11602 us
+[debug] Refiner: 145129 us
+[debug] Emitter: Class tree cache stats: reused: 30 -- invalidated: 37
+[debug] Emitter: Method tree cache stats: resued: 0 -- invalidated: 94
+[debug] Emitter (create Closure trees): 168759 us
+[info] Closure: 0 error(s), 0 warning(s)
+[debug] Closure: Compiler pass: 2048126 us
+[debug] Closure: Write result: 90060 us
+[debug] Global IR cache stats: reused: 0 -- invalidated: 20 -- trees read: 252

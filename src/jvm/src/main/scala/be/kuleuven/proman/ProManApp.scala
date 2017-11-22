@@ -1,0 +1,3 @@
+object ProManApp extends App {
+
+}
