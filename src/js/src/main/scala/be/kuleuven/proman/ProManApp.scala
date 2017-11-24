@@ -1,48 +1,56 @@
-// package be.kuleuven.proman
+package be.kuleuven.proman
 
-import scala.scalajs.js
+import be.kuleuven.proman.models._
+
+import io.circe.generic.auto._
+import io.circe.parser._
+import io.circe.syntax._
 import org.scalajs.dom
-import io.circe._, io.circe.generic.auto._, io.circe.parser._, io.circe.syntax._
+import org.scalajs.dom.ext.Ajax
+import org.scalajs.dom.raw.{Event, HTMLButtonElement, HTMLInputElement}
+import scala.util.{Failure, Success}
+import scala.concurrent.ExecutionContext.Implicits.global // implicit ExecutionContext for Future tasks
 
-import dom.ext.Ajax
 
 object ProManApp {
 
-  print("hello wtf")
+  def errorAlert(error: Any) = dom.window.alert(error.toString)
 
   def main(args: Array[String]): Unit = {
-    print("wtffff")
 
-    var xhr = new dom.XMLHttpRequest()
-    xhr.open("GET", "/service/animals")
-    xhr.onload = { (e: dom.Event) =>
-        if (xhr.status == 200) {
-            val container = dom.document.querySelector("#animals-container")
+//    def update() =
+//      Ajax.get("/").onComplete {
+//        case Failure(error) => errorAlert(error)
+//        case Success(xhr) => {
+//            val todosM = decode[Seq[TODOEntry]](xhr.responseText)
+//
+//            todosM match {
+//              case Left(error) => errorAlert(error)
+//              case Right(todos) =>
+//                val todoTarget = dom.document.body.querySelector("")
+//                todoTarget.innerHTML = ""
+//                val ui = new TODOEntryTemplate(scalatags.JsDom)
+//                todoTarget.appendChild(ui.multipleTemplate(todos).render)
+//            }
+//          }
+//      }
+//
+//    update()
+//
+//    val addProjectEl = dom.document.body.querySelector("").asInstanceOf[HTMLButtonElement]
+//    addProjectEl.onclick = (ev: Event) => {
+//      val projectNameEl = dom.document.body.querySelector("").asInstanceOf[HTMLInputElement]
+//      val projectName = projectNameEl.value
+//
+//      Ajax.post("", new TODOEntry(projectName).asJson.noSpaces)
+//        .onComplete {
+//          case Failure(error) => errorAlert(error)
+//          case Success(xhr) => {
+//            projectNameEl.value = ""
+//            update()
+//          }
+//        }
+//    }
 
-            // val animals: Either[io.circe.Error, List[Animal]] = decode[List[Animal]](xhr.responseText)
-            //
-            // animals match {
-            //     case Left(error) => dom.window.alert(error.getMessage)
-            //     case Right(list) => list.foreach( animal => {
-            //         val li = dom.document.createElement("li")
-            //         li.textContent = animal.breed + ", " + animal.name
-            //         container.appendChild(li)
-            //     })
-            // }
-            //
-            // // animals.right = List[List[Animal]] ???
-            // animals.right.foreach(
-            //     wtf => wtf.foreach(
-            //         animal => {
-            //             val li = dom.document.createElement("li")
-            //             li.textContent = animal.breed + ", " + animal.name
-            //             container.appendChild(li)
-            //         }
-            //     )
-            // )
-        }
-
-    }
-    xhr.send()
   }
 }
