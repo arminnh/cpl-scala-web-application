@@ -1,16 +1,24 @@
 package be.kuleuven.proman.repositories
 
-import be.kuleuven.proman.models.{TODOEntry, TODOProject}
+import be.kuleuven.proman.models.TODOProject
 
 object TODOProjectRepository {
+  private var id = 0
+  private var projects: Seq[TODOProject] = Seq()
 
-  val test_todo = new TODOEntry("Finish project")
-  var projects: Seq[TODOProject] = Seq(
-    new TODOProject("SCALA PROJECT", List(test_todo))
-  )
-
-  def create(project: TODOProject): Seq[TODOProject] = {
-    this.projects = project +: this.projects
-    this.projects
+  private def nextID = {
+    id += 1
+    id
   }
+
+  def create(name: String): TODOProject = {
+    val project = new TODOProject(nextID, name)
+    this.projects = project +: this.projects
+    project
+  }
+
+  def all(): Seq[TODOProject] = this.projects
+
+  def find(id: Int): Option[TODOProject] = this.projects.find(_ == id)
 }
+

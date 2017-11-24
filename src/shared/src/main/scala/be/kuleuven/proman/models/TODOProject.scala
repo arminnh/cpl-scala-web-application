@@ -1,27 +1,21 @@
 package be.kuleuven.proman.models
 
 import io.circe.{Decoder, Encoder, HCursor, Json}
-import cats.syntax.either._ // magically fixes "value map is not a member of io.circe.Decoder.Result[String]"
+import cats.syntax.either._
+
 import scalatags.generic.Bundle
 
 
-class TODOProject(var name: String, var todos: List[TODOEntry]=List()) {
-  val id: Int = TODOProject.nextID
+class TODOProject(var id: Int, var name: String) {
+  def this(name: String) = this(-1, name)
 
   override def toString: String = {
-    s"TODO Project with name: ${this.name} and todos: \n${this.todos.map(_.toString)}\n"
+    s"TODO Project: ${this.name}\n"
   }
 }
 
 
 object TODOProject {
-  private var id = 0
-
-  private def nextID = {
-    id += 1
-    id
-  }
-
   implicit val encodeTODOProject: Encoder[TODOProject] = new Encoder[TODOProject] {
     final def apply(p: TODOProject): Json = Json.obj(
       ("id", Json.fromInt(p.id)),
@@ -32,6 +26,7 @@ object TODOProject {
   implicit val decodeTODOProject: Decoder[TODOProject] = new Decoder[TODOProject] {
     final def apply(cursor: HCursor): Decoder.Result[TODOProject] =
       for {
+        id <- cursor.downField("id").as[Int]
         name <- cursor.downField("name").as[String]
       } yield {
         new TODOProject(name)
@@ -44,8 +39,18 @@ class TODOProjectTemplate[Builder, Output <: FragT, FragT](val bundle: Bundle[Bu
 
   import bundle.all._
 
-  def singleTemplate(project: TODOProject) = p(
-    a(href := "projects/"+project.id, cls := "project-link")(s"${project.name}")
-  )
-  def multipleTemplate(projects: Seq[TODOProject]) = div(projects.map(singleTemplate))
+  def singleTemplate(project: TODOProject) = {
+    tr(
+      td(project.id),
+      td( a(cls := "project-anchor", attr("data-id") := project.id)(project.name) )
+    )
+  }
+
+  def multipleTemplate(projects: Seq[TODOProject]) = {
+    table(
+      tbody(
+        projects.map(singleTemplate)
+      )
+    )
+  }
 }

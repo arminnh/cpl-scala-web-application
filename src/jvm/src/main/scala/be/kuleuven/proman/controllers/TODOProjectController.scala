@@ -16,7 +16,7 @@ object TODOProjectController {
 
   val ui = new TODOProjectTemplate(scalatags.Text)
 
-  def index(): Task[Response] = Ok {
+  def index: Task[Response] = Ok {
     html(
       head(
         meta(charset := "utf-8"),
@@ -36,28 +36,53 @@ object TODOProjectController {
       body(
         div(cls := "container", role := "main")(
           h1(cls := "jumbotron")("TODO Projects"),
+          div(cls := "alert alert-default"),
+          div(cls := "alert alert-warning"),
+          div(cls := "alert alert-warning", hidden),
+          h2("Create a new project"),
           form(action := "/projects/store", method := "post", id := "form-create-project")(
             input(tpe := "text", name := "name", placeholder := "Create a new project"),
             button(tpe := "submit", cls := "btn")("Create")
           ),
-          ui.multipleTemplate(TODOProjectRepository.projects)
+          h2("Open a project"),
+          ui.multipleTemplate(TODOProjectRepository.all())
         )
       )
     ).render
   }.withType(MediaType.`text/html`)
 
 
-  def store(request: Request): Task[Response] =
-    for {
-      project <- request.as(jsonOf[TODOProject])
-      response <- Ok(project.name)
-    } yield {
-      val projects = TODOProjectRepository.create(project)
-      response
-    }
+  def get(id: Int): Task[Response] = {
+    Ok(TODOProjectRepository.find(id).orNull.asJson)
+//    val projectM = TODOProjectRepository.find(id)
+//    projectM match {
+//      case Some(project) => Ok(project.asJson)
+//      case None => NotFound("Project not found!")
+//    }
+  }
+
+  def store(request: Request): Task[Response] = {
+    println("Project store")
+    request.params.mapValues(println)
+    println(request.body.toString())
+    println(request.attributes.entries)
+
+//    val name = request.asJson.hcursor.downField("name").as[String]
+//    println("creating new project with name " + name)
+//    TODOProjectRepository.create(name.right.get)
+    Ok()
+  }
+//    for {
+//      project <- request.as(jsonOf[TODOProject])
+//      json <- request.asJson.hcursor.downField("name").as[String]
+//      response <- Ok(project.name)
+//    } yield {
+//      TODOProjectRepository.create(project.name)
+//      response
+//    }
 
 
   def getProjectsJSON: Task[Response] = Ok {
-    TODOProjectRepository.projects.asJson
+    TODOProjectRepository.all().asJson
   }
 }

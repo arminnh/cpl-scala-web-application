@@ -3,6 +3,7 @@ package be.kuleuven.proman
 import java.io.File
 
 import be.kuleuven.proman.controllers._
+import be.kuleuven.proman.repositories.TODOProjectRepository
 import fs2.Task
 import fs2.interop.cats._
 
@@ -18,17 +19,18 @@ object ProManApp extends App {
 
   // Service that matches requests (at routes) to responses (by controller actions).
   val service: HttpService = HttpService {
-    case GET            -> Root                    => TemporaryRedirect(uri("/projects"))
+    case GET            -> Root                       => TemporaryRedirect(uri("/projects"))
 
-    case GET            -> Root/"projects"         => TODOProjectController.index()
-    case request @ POST -> Root/"projects"/"store" => TODOProjectController.store(request)
-    case GET            -> Root/"projects"/"json"  => TODOProjectController.getProjectsJSON
+    case GET            -> Root/"projects"            => TODOProjectController.index
+    case GET            -> Root/"projects"/IntVar(id) => TODOProjectController.get(id)
+    case request @ POST -> Root/"projects"/"store"    => TODOProjectController.store(request)
+    case GET            -> Root/"projects"/"json"     => TODOProjectController.getProjectsJSON
 
     // Serve some files with specific extensions
     case request @ GET  -> path ~ extension if fileExtensions.contains(extension) =>
         static(path.toList.mkString("/") + "." + extension, request)
 
-    case _ -> path                                 => NotFound("Not found!")
+    case _ -> path                                    => NotFound("Not found!")
   }
 
   // Serve a file
@@ -39,6 +41,7 @@ object ProManApp extends App {
 
   // Set up server that binds to localhost:8080/
   val server = BlazeBuilder.bindHttp(8080, "localhost").mountService(service, "/").run
+  TODOProjectRepository.create("SCALA PROJECT")
   println("SERVER NOW RUNNING")
 
   // Block on reading a line, makes it easy to stop in your terminal (hit enter).
