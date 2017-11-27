@@ -7,11 +7,9 @@ import scalatags.generic.Bundle
 
 
 class TODOProject(var id: Int, var name: String) {
-  def this(name: String) = this(-1, name)
+  def this(name: String) = this(-999, name)
 
-  override def toString: String = {
-    s"TODO Project: ${this.name}\n"
-  }
+  override def toString: String = s"TODO Project: ${this.name}, id ${this.id}\n"
 }
 
 
@@ -29,7 +27,7 @@ object TODOProject {
         id <- cursor.downField("id").as[Int]
         name <- cursor.downField("name").as[String]
       } yield {
-        new TODOProject(name)
+        new TODOProject(id, name)
       }
   }
 }
@@ -42,12 +40,12 @@ class TODOProjectTemplate[Builder, Output <: FragT, FragT](val bundle: Bundle[Bu
   def singleTemplate(project: TODOProject) = {
     tr(
       td(project.id),
-      td( a(cls := "project-anchor", attr("data-id") := project.id)(project.name) )
+      td( a(href := "#", cls := "project-anchor", attr("data-id") := project.id)(project.name) )
     )
   }
 
   def multipleTemplate(projects: Seq[TODOProject]) = {
-    table(
+    table(cls := "table table-striped")(
       tbody(
         projects.map(singleTemplate)
       )

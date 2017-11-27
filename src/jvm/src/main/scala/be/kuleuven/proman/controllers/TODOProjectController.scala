@@ -2,12 +2,13 @@ package be.kuleuven.proman.controllers
 
 import be.kuleuven.proman.models._
 import be.kuleuven.proman.repositories._
-
 import fs2.Task
+import io.circe.Json
 import io.circe.syntax._
 import org.http4s._
 import org.http4s.circe._
 import org.http4s.dsl._
+
 import scalatags.Text.all._
 import scalatags.Text.tags2.title
 
@@ -35,17 +36,18 @@ object TODOProjectController {
       ),
       body(
         div(cls := "container", role := "main")(
-          h1(cls := "jumbotron")("TODO Projects"),
-          div(cls := "alert alert-default"),
-          div(cls := "alert alert-warning"),
-          div(cls := "alert alert-warning", hidden),
-          h2("Create a new project"),
-          form(action := "/projects/store", method := "post", id := "form-create-project")(
-            input(tpe := "text", name := "name", placeholder := "Create a new project"),
-            button(tpe := "submit", cls := "btn")("Create")
-          ),
-          h2("Open a project"),
-          ui.multipleTemplate(TODOProjectRepository.all())
+          h1(id := "title", cls := "jumbotron")("TODO Projects"),
+          div(id := "info-container", cls := "alert alert-info", style := "display: none;")("info message"),
+          div(id := "error-container", cls := "alert alert-danger", style := "display: none;")("error message"),
+          div(id := "content")(
+            h2("Create a new project"),
+            form(id := "form-create-project", action := "/projects/store", method := "post")(
+              div(cls := "form-group")(input(tpe := "text", name := "name", placeholder := "Project title", cls := "form-control")),
+              button(tpe := "submit", cls := "btn")("Create")
+            ),
+            h2("Open a project"),
+            ui.multipleTemplate(TODOProjectRepository.all())
+          )
         )
       )
     ).render
@@ -53,36 +55,26 @@ object TODOProjectController {
 
 
   def get(id: Int): Task[Response] = {
-    Ok(TODOProjectRepository.find(id).orNull.asJson)
-//    val projectM = TODOProjectRepository.find(id)
-//    projectM match {
-//      case Some(project) => Ok(project.asJson)
-//      case None => NotFound("Project not found!")
-//    }
+    val project = TODOProjectRepository.find(id)
+    if (project != null) {
+      Ok(project.asJson)
+    } else {
+      NotFound()
+    }
   }
 
-  def store(request: Request): Task[Response] = {
-    println("Project store")
-    request.params.mapValues(println)
-    println(request.body.toString())
-    println(request.attributes.entries)
+  def store(request: Request): Task[Response] =
+    for {
+      project <- request.as(jsonOf[TODOProject])
+      response <- Ok(TODOProjectRepository.create(project.name).asJson)
+    } yield {
+      response
+    }
 
-//    val name = request.asJson.hcursor.downField("name").as[String]
-//    println("creating new project with name " + name)
-//    TODOProjectRepository.create(name.right.get)
-    Ok()
+  def exists(name: String): Task[Response] = {
+    println("Project exists?: " + name)
+    Ok(TODOProjectRepository.exists(name).asJson)
   }
-//    for {
-//      project <- request.as(jsonOf[TODOProject])
-//      json <- request.asJson.hcursor.downField("name").as[String]
-//      response <- Ok(project.name)
-//    } yield {
-//      TODOProjectRepository.create(project.name)
-//      response
-//    }
 
-
-  def getProjectsJSON: Task[Response] = Ok {
-    TODOProjectRepository.all().asJson
-  }
+  def getProjectsJSON: Task[Response] = Ok(TODOProjectRepository.all().asJson)
 }

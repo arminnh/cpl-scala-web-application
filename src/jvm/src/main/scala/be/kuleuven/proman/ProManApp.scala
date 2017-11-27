@@ -21,10 +21,11 @@ object ProManApp extends App {
   val service: HttpService = HttpService {
     case GET            -> Root                       => TemporaryRedirect(uri("/projects"))
 
-    case GET            -> Root/"projects"            => TODOProjectController.index
-    case GET            -> Root/"projects"/IntVar(id) => TODOProjectController.get(id)
-    case request @ POST -> Root/"projects"/"store"    => TODOProjectController.store(request)
-    case GET            -> Root/"projects"/"json"     => TODOProjectController.getProjectsJSON
+    case GET            -> Root/"projects"              => TODOProjectController.index
+    case request @ POST -> Root/"projects"/"store"      => TODOProjectController.store(request)
+    case GET            -> Root/"projects"/"json"       => TODOProjectController.getProjectsJSON
+    case GET            -> Root/"project"/IntVar(id)    => TODOProjectController.get(id)
+    case GET            -> Root/"project"/"exists"/name => TODOProjectController.exists(name)
 
     // Serve some files with specific extensions
     case request @ GET  -> path ~ extension if fileExtensions.contains(extension) =>

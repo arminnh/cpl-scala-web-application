@@ -6,7 +6,7 @@ object TODOProjectRepository {
   private var id = 0
   private var projects: Seq[TODOProject] = Seq()
 
-  private def nextID = {
+  private def nextID: Int = {
     id += 1
     id
   }
@@ -19,6 +19,8 @@ object TODOProjectRepository {
 
   def all(): Seq[TODOProject] = this.projects
 
-  def find(id: Int): Option[TODOProject] = this.projects.find(_ == id)
+  def find(id: Int): TODOProject = this.projects.find(_.id == id).orNull
+
+  def exists(name: String): Boolean = this.projects.find(_.name == name).orNull != null
 }
 
