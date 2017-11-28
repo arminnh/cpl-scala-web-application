@@ -2,8 +2,8 @@ package be.kuleuven.proman.controllers
 
 import be.kuleuven.proman.models._
 import be.kuleuven.proman.repositories._
+
 import fs2.Task
-import io.circe.Json
 import io.circe.syntax._
 import org.http4s._
 import org.http4s.circe._
@@ -28,7 +28,7 @@ object TODOProjectController {
         meta(name := "viewport", content := "width=device-width, initial-scale=1"),
         meta(name := "description", content := "Basic TODO web application"),
         meta(name := "author", content := "Armin Halilovic"),
-        title("TODO Projects"),
+        title("Todo Projects"),
         link(href := "/jvm/src/assets/img/favicon.ico", rel := "icon"),
         link(rel :="stylesheet", href := "/jvm/src/assets/css/bootstrap.css"),
         script(tpe := "text/javascript", src := "/js/target/scala-2.11/js-fastopt.js", attr("defer").empty)
@@ -36,16 +36,16 @@ object TODOProjectController {
       ),
       body(
         div(cls := "container", role := "main")(
-          h1(id := "title", cls := "jumbotron")("TODO Projects"),
+          h1(id := "title", cls := "jumbotron")("Todo projects"),
           div(id := "info-container", cls := "alert alert-info", style := "display: none;")("info message"),
           div(id := "error-container", cls := "alert alert-danger", style := "display: none;")("error message"),
           div(id := "content")(
             h2("Create a new project"),
-            form(id := "form-create-project", action := "/projects/store", method := "post")(
+            form(id := "form-create-project", action := "/projects/store", method := "post", cls := "form-inline")(
               div(cls := "form-group")(input(tpe := "text", name := "name", placeholder := "Project title", cls := "form-control")),
-              button(tpe := "submit", cls := "btn")("Create")
+              button(tpe := "submit", cls := "btn", marginLeft := 15)("Create")
             ),
-            h2("Open a project"),
+            h2("Open  a project"),
             ui.multipleTemplate(TODOProjectRepository.all())
           )
         )
@@ -65,8 +65,8 @@ object TODOProjectController {
 
   def store(request: Request): Task[Response] =
     for {
-      project <- request.as(jsonOf[TODOProject])
-      response <- Ok(TODOProjectRepository.create(project.name).asJson)
+      name <- request.as[String]
+      response <- Ok(TODOProjectRepository.create(name).asJson)
     } yield {
       response
     }

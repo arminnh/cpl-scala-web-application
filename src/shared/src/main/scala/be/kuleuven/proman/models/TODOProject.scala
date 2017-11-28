@@ -7,9 +7,7 @@ import scalatags.generic.Bundle
 
 
 class TODOProject(var id: Int, var name: String) {
-  def this(name: String) = this(-999, name)
-
-  override def toString: String = s"TODO Project: ${this.name}, id ${this.id}\n"
+  override def toString: String = s"Todo project: ${this.name}, id ${this.id}\n"
 }
 
 
@@ -34,7 +32,6 @@ object TODOProject {
 
 
 class TODOProjectTemplate[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]) {
-
   import bundle.all._
 
   def singleTemplate(project: TODOProject) = {

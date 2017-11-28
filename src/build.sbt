@@ -40,6 +40,9 @@ lazy val proman = crossProject
   .jsSettings(
     name := "js",
     scalaJSUseMainModuleInitializer := true
+//    libraryDependencies ++= Seq(
+//      "org.scala-js" %%% "scalajs-java-time" % "0.2.3"
+//    )
   )
 
 // Needed, so sbt finds the projects
