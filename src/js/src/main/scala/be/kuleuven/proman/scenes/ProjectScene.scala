@@ -1,20 +1,21 @@
 package be.kuleuven.proman.scenes
 
-import be.kuleuven.proman._
+import be.kuleuven.proman.{errorAlert, formatTimeStamp, hideError, showError}
 import be.kuleuven.proman.models._
 
 import scala.util.{Failure, Success}
+import scala.concurrent.ExecutionContext.Implicits.global
 import io.circe.syntax._
 import io.circe.parser.decode
+import org.w3c.dom.html.HTMLInputElement
+
+import scala.scalajs.js.Any
+//import io.circe.generic.auto._
 import org.scalajs.dom
 import org.scalajs.dom.ext.Ajax
 import org.scalajs.dom.html._ // HTMLDivElement => Div
 import scalatags.JsDom.all._ // Client side HTML Tags
 import org.scalajs.dom.raw.{Event, NodeListOf}
-import scala.concurrent.ExecutionContext.Implicits.global // implicit ExecutionContext for Future tasks
-
-//import io.circe.generic.auto._
-//import io.circe.parser._
 
 //noinspection AccessorLikeMethodIsUnit
 object ProjectScene {
@@ -31,7 +32,7 @@ object ProjectScene {
 
     dom.document.getElementById("content").innerHTML = div(
       h2("Create a new entry"),
-      form(id := "form-create-todo", action := s"/project/${project.id}/store", method := "post", cls := "form-inline")(
+      form(id := "form-create-todo", action := s"/todos/${project.id}/store", method := "post", cls := "form-inline")(
         div(cls := "form-group")(input(tpe := "text", name := "name", placeholder := "Message", cls := "form-control")),
         button(tpe := "submit", cls := "btn btn-primary", marginLeft := 15)("Create")
       ),
@@ -57,7 +58,7 @@ object ProjectScene {
     setupHTML(project)
 
     // Fetch project's todos and display them in tables.
-    Ajax.get(s"/project/${project.id}/todos/json").onComplete {
+    Ajax.get(s"/todos/${project.id}/json").onComplete {
       case Failure(error) => errorAlert(error)
       case Success(xhr) =>
         val todosM = decode[Seq[TODOEntry]](xhr.responseText)
@@ -81,25 +82,52 @@ object ProjectScene {
             val edit_btns = dom.document.getElementsByClassName("todo-edit").asInstanceOf[NodeListOf[Button]]
             for (i <- 0 until edit_btns.length) {
               val btn = edit_btns.item(i)
-              btn.onclick = (e: Event) => {
-                println("clicked on " + e.srcElement)
-              }
+
+              btn.onclick = { Any.fromFunction1((e: Event) => {
+                val tr = btn.parentNode.parentNode.asInstanceOf[TableRow]
+                val td_text = tr.getElementsByClassName("todo-text").item(0).asInstanceOf[TableDataCell]
+                println("btn clicked" + btn)
+                println("tr: " + tr)
+                println("td_text in tr: " + td_text)
+
+                println("td_text has child nodes: " + td_text.childNodes.length)
+                for (j <- 0 until td_text.childNodes.length) {
+                  println("node " + j + ": " + td_text.childNodes.item(j).toString + ", " + td_text.childNodes.item(j).textContent + ", " + td_text.childNodes.item(j).nodeName)
+                }
+
+                if (td_text.firstChild.nodeName == "#text") {
+                  println("td_text no child nodes")
+                  val input_node = input(tpe := "text", name := "text", placeholder := "Message",  cls := "form-control", value := td_text.innerHTML).render
+                  td_text.innerHTML = ""
+                  td_text.appendChild(input_node)
+
+                  input_node.onkeydown = { Any.fromFunction1((e: Event) => {
+                    Ajax.put("/todos/"+tr.getAttribute("data-id")+"/update", new TODOEntry(-999, -999, input_node.value).asJson.noSpaces).onComplete {
+                      case Failure(error) => errorAlert(error)
+                      case Success(todo) => println("Updated the todo: " + todo)
+                    }
+                  })}
+
+                } else {
+                  td_text.innerHTML = td_text.firstChild.asInstanceOf[Input].value
+                }
+              })}
             }
 
             val finished_btns = dom.document.getElementsByClassName("todo-finished").asInstanceOf[NodeListOf[Button]]
             for (i <- 0 until finished_btns.length) {
               val btn = finished_btns.item(i)
-              btn.onclick = (e: Event) => {
+              btn.onclick = { Any.fromFunction1((e: Event) => {
                 println("clicked on " + e.srcElement)
-              }
+              })}
             }
 
             val pending_btns = dom.document.getElementsByClassName("todo-pending").asInstanceOf[NodeListOf[Button]]
             for (i <- 0 until pending_btns.length) {
               val btn = pending_btns.item(i)
-              btn.onclick = (e: Event) => {
+              btn.onclick = { Any.fromFunction1((e: Event) => {
                 println("clicked on " + e.srcElement)
-              }
+              })}
             }
         }
     }
@@ -132,7 +160,7 @@ object ProjectScene {
               val new_entry = this.todo_entry_ui.singleTemplate(todo).render
 
               // Format timestamp.
-              val td_timestamp = new_entry.childNodes.item(2).asInstanceOf[TableDataCell]
+              val td_timestamp = new_entry.getElementsByClassName("todo-timestamp").asInstanceOf[NodeListOf[TableDataCell]].item(0)
               td_timestamp.innerHTML = formatTimeStamp(td_timestamp.getAttribute("data-timestamp").toLong)
 
               // Add new entry at top of table.

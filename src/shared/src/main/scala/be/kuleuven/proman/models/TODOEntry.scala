@@ -1,8 +1,5 @@
 package be.kuleuven.proman.models
 
-//import java.text.SimpleDateFormat
-import java.util.Date
-
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import cats.syntax.either._
 
@@ -11,7 +8,7 @@ import scalatags.generic.Bundle
 
 class TODOEntry(var id: Int, var project_id: Int, var text: String, var timestamp: Long, var is_done: Boolean) {
 
-  def this(id: Int, project_id: Int, text: String) = this(id, project_id, text, new Date().getTime, false)
+  def this(id: Int, project_id: Int, text: String) = this(id, project_id, text, System.currentTimeMillis(), false)
   def this(id: Int, project_id: Int, text: String, timestamp: Long) = this(id, project_id, text, timestamp, false)
 
   override def toString: String = {
@@ -61,7 +58,7 @@ class TODOEntryTemplate[Builder, Output <: FragT, FragT](val bundle: Bundle[Buil
       td(attr("data-timestamp") := todo.timestamp, cls := "todo-timestamp", width := 160, verticalAlign := "middle"),
 
       td(width := 60)(
-        button(cls := "btn btn-default todo-edit", title:= "edit")(span(cls := "glyphicon glyphicon-pencil"))
+        button(cls := "btn btn-sm btn-default todo-edit", title:= "edit")(span(cls := "glyphicon glyphicon-pencil"))
       ),
 
       td(width := 60)(
@@ -70,7 +67,7 @@ class TODOEntryTemplate[Builder, Output <: FragT, FragT](val bundle: Bundle[Buil
             span(cls := "glyphicon glyphicon-remove", color := "darkred")
           )
         } else {
-          button(cls := "btn brn-sm btn-default todo-pending", title := "move to finished todos")(
+          button(cls := "btn btn-sm btn-default todo-pending", title := "move to finished todos")(
             span(cls := "glyphicon glyphicon-ok", color := "green")
           )
         }

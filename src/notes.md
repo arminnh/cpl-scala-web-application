@@ -14,6 +14,6 @@
     * Extracted base HTML to JVM/ProManApp.
     * Projects index page is now loaded with JS (StartScene).
     * ProjectScene now contains a button to go back to the StartScene (project index).
-
+* 01h45: Todo entries can now be updated. Removed Date class from TODOEntry entirely and used System.currentTimeMillis().
 ---
-Total: **26h25**
+Total: **28h10**

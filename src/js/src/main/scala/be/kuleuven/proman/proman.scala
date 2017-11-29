@@ -3,15 +3,16 @@ package be.kuleuven
 import org.scalajs.dom
 import org.scalajs.dom.html._ // HTMLDivElement => Div
 
-import scala.scalajs.js.Date
+import scala.scalajs.js
 
 package object proman {
 
   // Error: Referring to non-existent class java.text.SimpleDateFormat
   def formatTimeStamp(ts: Long): String = {
-    val date = new Date(ts)
-    date.getFullYear() + "-" + date.getMonth() + "-" + date.getDay() + " " +
-      date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds()
+    //val date = new js.Date()
+    val date = new js.Date(ts)
+    date.getUTCFullYear() + "-" + date.getUTCMonth() + "-" + date.getUTCDate() + " " +
+      date.getUTCHours() + ":" + date.getUTCMinutes() + ":" + date.getUTCSeconds()
   }
 
   def errorAlert(error: Throwable): Unit = {
@@ -37,3 +38,4 @@ package object proman {
     container.style.display = "none"
   }
 }
+

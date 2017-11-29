@@ -57,9 +57,9 @@ object ProManApp extends App {
     case GET      -> Root/"project"/IntVar(id)                  => TODOProjectController.get(id)
     case GET      -> Root/"project"/"exists"/name               => TODOProjectController.exists(name)
 
-    case GET      -> Root/"project"/IntVar(p_id)/"todos"/"json" => TODOEntryController.index(p_id)
-    case r @ POST -> Root/"project"/IntVar(p_id)/"store"        => TODOEntryController.store(r, p_id)
-    case r @ POST -> Root/"todo"/IntVar(todo_id)/"update"       => TODOEntryController.update(r, todo_id)
+    case GET      -> Root/"todos"/IntVar(p_id)/"json"           => TODOEntryController.index(p_id)
+    case r @ POST -> Root/"todos"/IntVar(p_id)/"store"          => TODOEntryController.store(r, p_id)
+    case r @ PUT  -> Root/"todos"/IntVar(t_id)/"update"         => TODOEntryController.update(r, t_id)
 
     // Serve some files with specific extensions
     case r @ GET  -> path~ext if fileExtensions.contains(ext)   => static(path.toList.mkString("/") + "." + ext, r)

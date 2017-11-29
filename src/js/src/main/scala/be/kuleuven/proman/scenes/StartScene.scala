@@ -1,23 +1,18 @@
 package be.kuleuven.proman.scenes
 
-import be.kuleuven.proman._
+import be.kuleuven.proman.{hideError, errorAlert, formatTimeStamp, showError}
 import be.kuleuven.proman.models._
 
 import scala.util.{Failure, Success}
+import scala.concurrent.ExecutionContext.Implicits.global // implicit ExecutionContext for Future tasks
 import io.circe.syntax._
 import io.circe.parser.decode
+//import io.circe.generic.auto._
 import org.scalajs.dom
 import org.scalajs.dom.ext.Ajax
-import org.scalajs.dom.ext.Ajax.InputData
 import org.scalajs.dom.html._
-
 import scalatags.JsDom.all._
 import org.scalajs.dom.raw.{Event, NodeListOf}
-
-import scala.concurrent.ExecutionContext.Implicits.global // implicit ExecutionContext for Future tasks
-
-//import io.circe.generic.auto._
-//import io.circe.parser._
 
 //noinspection AccessorLikeMethodIsUnit
 object StartScene {

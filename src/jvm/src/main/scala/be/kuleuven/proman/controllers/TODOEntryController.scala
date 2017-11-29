@@ -1,5 +1,6 @@
 package be.kuleuven.proman.controllers
 
+import be.kuleuven.proman.models.TODOEntry
 import be.kuleuven.proman.repositories._
 
 import fs2.Task
@@ -28,7 +29,13 @@ object TODOEntryController {
 //      response
 //    }
 
-  def update(request: Request, project_id: Int): Task[Response] = {
-    request.as[String].flatMap(name => Ok(TODOEntryRepository.update(project_id, name).asJson))
+  def update(request: Request, todo_id: Int): Task[Response] = {
+    for {
+      todo <- request.as(jsonOf[TODOEntry])
+      response <- Ok(TODOEntryRepository.update(todo_id, todo.text).asJson)
+    } yield {
+      println("Updated todo: " + todo)
+      response
+    }
   }
 }
