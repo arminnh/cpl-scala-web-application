@@ -36,15 +36,19 @@ class TODOProjectTemplate[Builder, Output <: FragT, FragT](val bundle: Bundle[Bu
 
   def singleTemplate(project: TODOProject) = {
     tr(
-      td(project.id),
-      td( a(href := "#", cls := "project-anchor", attr("data-id") := project.id)(project.name) )
+      td(verticalAlign := "middle")(project.id),
+      td(verticalAlign := "middle")(
+        button(attr("data-id") := project.id, cls := "project-anchor btn-link")(project.name)
+      )
     )
   }
 
   def multipleTemplate(projects: Seq[TODOProject]) = {
-    table(cls := "table table-striped")(
-      tbody(
-        projects.map(singleTemplate)
+    div(cls := "table-responsive")(
+      table(cls := "table table-condensed table-striped table-hover")(
+        tbody(
+          projects.map(singleTemplate)
+        )
       )
     )
   }

@@ -9,5 +9,6 @@
     * New todos can be created (instant adding in table needs to be improved).
     * Placed edit/finished/not finished buttons for todo entries.
     * Fixed TODOEntry date formatting (manual solution as java.time and java.util.time wouldn't work).
+1010->    
 ---
 Total: **22h45**
