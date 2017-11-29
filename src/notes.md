@@ -9,6 +9,11 @@
     * New todos can be created (instant adding in table needs to be improved).
     * Placed edit/finished/not finished buttons for todo entries.
     * Fixed TODOEntry date formatting (manual solution as java.time and java.util.time wouldn't work).
-1010->    
+* 03h40: Created scenes classes and updated scenes:
+    * Split JS/ProManApp class into proman (util functions) and scenes (view functions) packages.
+    * Extracted base HTML to JVM/ProManApp.
+    * Projects index page is now loaded with JS (StartScene).
+    * ProjectScene now contains a button to go back to the StartScene (project index).
+
 ---
-Total: **22h45**
+Total: **26h25**
