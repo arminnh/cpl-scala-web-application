@@ -4,18 +4,16 @@ import be.kuleuven.proman.{errorAlert, formatTimeStamp, hideError, showError}
 import be.kuleuven.proman.models._
 
 import scala.util.{Failure, Success}
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext.Implicits.global // implicit ExecutionContext for Future tasks
 import io.circe.syntax._
 import io.circe.parser.decode
-import org.w3c.dom.html.HTMLInputElement
-
-import scala.scalajs.js.Any
 //import io.circe.generic.auto._
 import org.scalajs.dom
 import org.scalajs.dom.ext.Ajax
 import org.scalajs.dom.html._ // HTMLDivElement => Div
-import scalatags.JsDom.all._ // Client side HTML Tags
 import org.scalajs.dom.raw.{Event, NodeListOf}
+import scalatags.JsDom.all._ // Client side HTML Tags
+import scala.scalajs.js.Any
 
 //noinspection AccessorLikeMethodIsUnit
 object ProjectScene {
@@ -102,6 +100,8 @@ object ProjectScene {
                   td_text.appendChild(input_node)
 
                   input_node.onkeydown = { Any.fromFunction1((e: Event) => {
+
+                    // if (enter) replace input) else
                     Ajax.put("/todos/"+tr.getAttribute("data-id")+"/update", new TODOEntry(-999, -999, input_node.value).asJson.noSpaces).onComplete {
                       case Failure(error) => errorAlert(error)
                       case Success(todo) => println("Updated the todo: " + todo)
