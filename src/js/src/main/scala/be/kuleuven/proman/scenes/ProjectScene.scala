@@ -4,9 +4,10 @@ import be.kuleuven.proman.{errorAlert, formatTimeStamp, hideError, showError}
 import be.kuleuven.proman.models._
 
 import scala.util.{Failure, Success}
-import scala.concurrent.ExecutionContext.Implicits.global // implicit ExecutionContext for Future tasks
+import scala.concurrent.ExecutionContext.Implicits.global
 import io.circe.syntax._
 import io.circe.parser.decode
+import org.scalajs.dom.raw.{HTMLElement, KeyboardEvent, MouseEvent}
 //import io.circe.generic.auto._
 import org.scalajs.dom
 import org.scalajs.dom.ext.Ajax
@@ -17,9 +18,11 @@ import scala.scalajs.js.Any
 
 //noinspection AccessorLikeMethodIsUnit
 object ProjectScene {
+  var project_id: Int = -999
   lazy val todo_entry_ui = new TODOEntryTemplate(scalatags.JsDom)
 
   def setupHTML(project: TODOProject): Unit = {
+    this.project_id = project.id
     hideError()
 
     dom.document.title = "Project: " + project.name
@@ -40,19 +43,96 @@ object ProjectScene {
       div(id := "finished-todo-container")
     ).render.innerHTML
 
-    dom.document.getElementById("form-create-todo").asInstanceOf[Form].onsubmit = (e: Event) => {
+    dom.document.getElementById("form-create-todo").asInstanceOf[Form].onsubmit = Any.fromFunction1((e: Event)  => {
       e.preventDefault()
       submitNewTodo(e.srcElement.asInstanceOf[Form])
-    }
+    })
 
-    dom.document.getElementById("back-to-start").asInstanceOf[Button].onclick = (e: Event) => {
+    dom.document.getElementById("back-to-start").asInstanceOf[Button].onclick = Any.fromFunction1(_ => {
       StartScene.setupScene()
+    })
+  }
+
+  def updateTODOIsDoneStatus(tr: TableRow, is_done: Boolean): Unit = {
+    val todoM = decode[TODOEntry](tr.getAttribute("data-json"))
+
+    todoM match {
+      case Left(error) => errorAlert(error)
+      case Right(todo) =>
+        todo.is_done = is_done
+
+        Ajax.put(s"/todos/${todo.id}/update", todo.asJson.noSpaces).onComplete {
+          case Failure(error) => errorAlert(error)
+          case Success(xhr) =>
+            val updatedM = decode[TODOEntry](xhr.responseText)
+
+            // move tr to other table
+            tr.parentNode.removeChild(tr)
+            insertTodoInTable(todo)
+
+            updatedM match {
+              case Left(error) => errorAlert(error)
+              case Right(updated) => tr.setAttribute("data-json", updated.asJson.noSpaces)
+            }
+        }
     }
   }
 
-  def setupScene(project: TODOProject): Unit = {
-    println("loading project: " + project)
+  def updateTODOText(tr: TableRow, input_node: Input): Unit = {
+    val todoM = decode[TODOEntry](tr.getAttribute("data-json"))
 
+    todoM match {
+      case Left(error) => errorAlert(error)
+      case Right(todo) =>
+        todo.text = input_node.value
+
+        Ajax.put(s"/todos/${todo.id}/update", todo.asJson.noSpaces).onComplete {
+          case Failure(error) => errorAlert(error)
+          case Success(xhr) =>
+            val updatedM = decode[TODOEntry](xhr.responseText)
+
+            updatedM match {
+              case Left(error) => errorAlert(error)
+              case Right(updated) => tr.setAttribute("data-json", updated.asJson.noSpaces)
+            }
+        }
+    }
+  }
+
+  def insertTodoInTable(new_todo: TODOEntry): Unit = {
+    val containerID = if (new_todo.is_done) "finished-todo-container" else "pending-todo-container"
+    val tbody = dom.document.getElementById(containerID).getElementsByTagName("tbody").item(0).asInstanceOf[TableSection]
+    println("found tbody")
+    // Find index where to insert the new row at.
+    var i = 0
+
+    if (tbody.childElementCount > 0) {
+      var timestamp = 0L
+      do {
+        println("fetching timestamp at index " + i)
+        timestamp = tbody.childNodes.item(i).asInstanceOf[TableRow]
+          .getElementsByClassName("todo-timestamp").item(0).asInstanceOf[TableCell]
+          .getAttribute("data-timestamp").toLong
+
+        println("got timestamp at index " + i)
+
+        i += 1
+      } while (i < tbody.childElementCount && new_todo.timestamp <= timestamp)
+    }
+
+    println(i)
+    // Insert the new todo row.
+    val tempRow = tbody.insertRow(i - 1)
+    println("inserted temprow " + tempRow)
+    val newRow = tbody.insertBefore(todo_entry_ui.singleTemplate(new_todo).render, tempRow)
+    println("newRow" + newRow)
+    tbody.removeChild(tempRow)
+    println("removed temprow")
+    setupTodoTableRow(newRow.asInstanceOf[TableRow])
+    println("setup newrow")
+  }
+
+  def setupScene(project: TODOProject): Unit = {
     setupHTML(project)
 
     // Fetch project's todos and display them in tables.
@@ -71,88 +151,80 @@ object ProjectScene {
             val finished_todo_target = dom.document.getElementById("finished-todo-container")
             finished_todo_target.appendChild(this.todo_entry_ui.multipleTemplate(todos.filter(_.is_done == true)).render)
 
-            val cells = dom.document.getElementsByClassName("todo-timestamp").asInstanceOf[NodeListOf[TableDataCell]]
-            for (i <- 0 until cells.length) {
-              val td = cells.item(i)
-              td.innerHTML = formatTimeStamp(td.getAttribute("data-timestamp").toLong)
-            }
-
-            val edit_btns = dom.document.getElementsByClassName("todo-edit").asInstanceOf[NodeListOf[Button]]
-            for (i <- 0 until edit_btns.length) {
-              val btn = edit_btns.item(i)
-
-              btn.onclick = { Any.fromFunction1((e: Event) => {
-                val tr = btn.parentNode.parentNode.asInstanceOf[TableRow]
-                val td_text = tr.getElementsByClassName("todo-text").item(0).asInstanceOf[TableDataCell]
-                println("btn clicked" + btn)
-                println("tr: " + tr)
-                println("td_text in tr: " + td_text)
-
-                println("td_text has child nodes: " + td_text.childNodes.length)
-                for (j <- 0 until td_text.childNodes.length) {
-                  println("node " + j + ": " + td_text.childNodes.item(j).toString + ", " + td_text.childNodes.item(j).textContent + ", " + td_text.childNodes.item(j).nodeName)
-                }
-
-                if (td_text.firstChild.nodeName == "#text") {
-                  println("td_text no child nodes")
-                  val input_node = input(tpe := "text", name := "text", placeholder := "Message",  cls := "form-control", value := td_text.innerHTML).render
-                  td_text.innerHTML = ""
-                  td_text.appendChild(input_node)
-
-                  input_node.onkeydown = { Any.fromFunction1((e: Event) => {
-
-                    // if (enter) replace input) else
-                    Ajax.put("/todos/"+tr.getAttribute("data-id")+"/update", new TODOEntry(-999, -999, input_node.value).asJson.noSpaces).onComplete {
-                      case Failure(error) => errorAlert(error)
-                      case Success(todo) => println("Updated the todo: " + todo)
-                    }
-                  })}
-
-                } else {
-                  td_text.innerHTML = td_text.firstChild.asInstanceOf[Input].value
-                }
-              })}
-            }
-
-            val finished_btns = dom.document.getElementsByClassName("todo-finished").asInstanceOf[NodeListOf[Button]]
-            for (i <- 0 until finished_btns.length) {
-              val btn = finished_btns.item(i)
-              btn.onclick = { Any.fromFunction1((e: Event) => {
-                println("clicked on " + e.srcElement)
-              })}
-            }
-
-            val pending_btns = dom.document.getElementsByClassName("todo-pending").asInstanceOf[NodeListOf[Button]]
-            for (i <- 0 until pending_btns.length) {
-              val btn = pending_btns.item(i)
-              btn.onclick = { Any.fromFunction1((e: Event) => {
-                println("clicked on " + e.srcElement)
-              })}
+            val trs = dom.document.getElementsByTagName("tr").asInstanceOf[NodeListOf[TableRow]]
+            for (i <- 0 until trs.length) {
+              val tr = trs.item(i)
+              setupTodoTableRow(tr)
             }
         }
     }
   }
 
+  def setupTodoTableRow(tr: TableRow): Unit = {
+    val timestamp_tds = tr.getElementsByClassName("todo-timestamp").asInstanceOf[NodeListOf[TableDataCell]]
+    for (i <- 0 until timestamp_tds.length) {
+      val td = timestamp_tds.item(i)
+      td.innerHTML = formatTimeStamp(td.getAttribute("data-timestamp").toLong)
+    }
+
+    val finished_btns = tr.getElementsByClassName("todo-finished").asInstanceOf[NodeListOf[Button]]
+    for (i <- 0 until finished_btns.length) {
+      val btn = finished_btns.item(i)
+      btn.onclick = Any.fromFunction1(_ => { updateTODOIsDoneStatus(tr, is_done=false) })
+    }
+
+    val pending_btns = tr.getElementsByClassName("todo-pending").asInstanceOf[NodeListOf[Button]]
+    for (i <- 0 until pending_btns.length) {
+      val btn = pending_btns.item(i)
+      btn.onclick = Any.fromFunction1(_ => { updateTODOIsDoneStatus(tr, is_done=true) })
+    }
+
+    val edit_btns = tr.getElementsByClassName("todo-edit").asInstanceOf[NodeListOf[Button]]
+    for (i <- 0 until edit_btns.length) {
+      val btn = edit_btns.item(i)
+      btn.onclick = Any.fromFunction1(_ => {
+        val td_text = tr.getElementsByClassName("todo-text").item(0).asInstanceOf[TableDataCell]
+
+        if (td_text.firstChild.nodeName != "#text") {
+          // replace input box by it's value
+          td_text.innerHTML = td_text.firstChild.asInstanceOf[Input].value
+        } else {
+          // replace text by a new input box
+          val input_node = input(tpe := "text", name := "text", placeholder := "Message",  cls := "form-control", value := td_text.innerHTML, height := 24).render
+          td_text.innerHTML = ""
+          td_text.appendChild(input_node)
+
+          // Update todo text. every keystroke is an update
+          input_node.onkeydown = Any.fromFunction1((e: KeyboardEvent) => {
+            if (e.keyCode == 13) {
+              td_text.innerHTML = input_node.value
+            } else {
+              updateTODOText(tr, input_node)
+            }
+          })
+
+          println("set focus")
+          input_node.focus()
+          input_node.setSelectionRange(input_node.value.length, input_node.value.length)
+        }
+      })
+    }
+  }
+
   def submitNewTodo(form: Form): Unit = {
     hideError()
-    println("submitNewTodo submit")
 
     val name = form.elements.namedItem("name").asInstanceOf[Input].value
-    println("submitNewTodo input: " + name)
 
     if (name.length() == 0) {
       showError("Fill in a message first!")
     } else {
       Ajax.post(form.action, name.asJson.noSpaces).onComplete {
-        case Failure(error) =>
-          println("submitNewTodo submit failure")
-          errorAlert(error)
+        case Failure(error) => errorAlert(error)
 
         case Success(xhr) =>
-          println("submitNewTodo submit success, " + xhr.responseText)
           form.reset()
           val new_todo = decode[TODOEntry](xhr.responseText)
-          println("new_todo " + new_todo)
 
           new_todo match {
             case Left(error) => errorAlert(error)

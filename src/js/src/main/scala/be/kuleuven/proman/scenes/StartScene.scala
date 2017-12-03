@@ -37,10 +37,10 @@ object StartScene {
       div(id := "project-container")
     ).render.innerHTML
 
-    dom.document.getElementById("form-create-project").asInstanceOf[Form].onsubmit = (e: Event) => {
+    dom.document.getElementById("form-create-project").asInstanceOf[Form].onsubmit = Any.fromFunction1((e: Event) => {
       e.preventDefault()
       submitNewProject(e.srcElement.asInstanceOf[Form])
-    }
+    })
   }
 
   def setupScene(): Unit = {
@@ -61,28 +61,24 @@ object StartScene {
             val project_anchors = dom.document.getElementsByClassName("project-anchor").asInstanceOf[NodeListOf[Anchor]]
             for (i <- 0 until project_anchors.length) {
               val anchor = project_anchors.item(i)
-              anchor.onclick = (e: Event) => {
+              anchor.onclick = Any.fromFunction1(_ => {
                 getProjectAndShow(anchor.getAttribute("data-id").toInt)
                 // dom.window.history.pushState("", dom.document.title, dom.window.location.pathname)
-              }
+              })
             }
         }
     }
   }
 
   def getProjectAndShow(id: Int): Unit = {
-    println("get project " + id)
-
     Ajax.get("/project/" + id).onComplete {
       case Failure(error) => errorAlert(error)
       case Success(xhr) =>
-        println("success, " + xhr.responseText)
         val projectM = decode[TODOProject](xhr.responseText)
 
         projectM match {
           case Left(error) => errorAlert(error)
           case Right(project) => {
-            println("loading project " + project)
             ProjectScene.setupScene(project)
           }
         }
@@ -92,16 +88,12 @@ object StartScene {
   // Submit a new project if possible and then load it if successful.
   def submitNewProject(form: Form): Unit = {
     hideError()
-    println("form_new_project submit")
 
     val name = form.elements.namedItem("name").asInstanceOf[Input].value
-    println("form_new_project input: " + name)
-
     if (name.length() == 0) {
       showError("Fill in a name first!")
     } else {
       val encodedName = scalajs.js.URIUtils.encodeURIComponent(name)
-      println("encoded name: " + encodedName)
       Ajax.get("project/exists/" + encodedName).onComplete {
         case Failure(error) => errorAlert(error)
         case Success(xhr) => {
@@ -110,28 +102,20 @@ object StartScene {
           existsM match {
             case Left(error) => errorAlert(error)
             case Right(exists) => {
-              println("project exists?: " + exists)
-
               if (exists) {
                 showError("A project with that name already exists! Try again with a different name.")
               } else {
 
                 Ajax.post(form.action, name.asJson.toString()).onComplete {
-                  case Failure(error) => {
-                    println("form_new_project submit failure")
-                    errorAlert(error)
-                  }
-                  case Success(xhr2) => {
-                    println("form_new_project submit success, " + xhr2.responseText)
+                  case Failure(error) => errorAlert(error)
+                  case Success(xhr2) =>
                     form.reset()
                     val new_project = decode[TODOProject](xhr2.responseText)
-                    println("new_project " + new_project)
 
                     new_project match {
                       case Left(error) => errorAlert(error)
                       case Right(project) => ProjectScene.setupScene(project)
                     }
-                  }
                 }
               }
             }
@@ -140,5 +124,4 @@ object StartScene {
       }
     }
   }
-
 }

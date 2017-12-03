@@ -1,3 +1,8 @@
+## TODO
+* When new todo's are added, set all event handlers correctly => maybe use the new insertTodoInTable method
+* Check whether ProjectScene@insertTodoInTable puts the new rows at the correct index. For existing todos and newly insterted todos.
+* multi-user functionality
+
 ## Timesheet
 * 03h20: First setup, learn about scala project structure. Created first 2 models and 2 controllers. Created root page that shows the projects in a list.
 * 06h00: TODO encoders/decoders. First attempt at storing new projects. Updated homepage. Updated routes. Suffered through worthless documentation and non existing forum posts. Trying to figure out the worthless "The request body was malformed." error message.
@@ -15,5 +20,6 @@
     * Projects index page is now loaded with JS (StartScene).
     * ProjectScene now contains a button to go back to the StartScene (project index).
 * 01h45: Todo entries can now be updated. Removed Date class from TODOEntry entirely and used System.currentTimeMillis().
+* 03h00: Futher improved ProjectScene functionality. Only need to fix 2 small things. Updated code to be more prepared for multi-user functionality.
 ---
-Total: **28h10**
+Total: **31h10**

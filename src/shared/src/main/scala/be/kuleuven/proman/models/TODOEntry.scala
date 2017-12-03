@@ -1,15 +1,16 @@
 package be.kuleuven.proman.models
 
 import io.circe.{Decoder, Encoder, HCursor, Json}
+import io.circe.syntax._
 import cats.syntax.either._
 
 import scalatags.generic.Bundle
 
 
-class TODOEntry(var id: Int, var project_id: Int, var text: String, var timestamp: Long, var is_done: Boolean) {
+class TODOEntry(var id: Int, var project_id: Int, var text: String, var is_done: Boolean, var timestamp: Long) {
 
-  def this(id: Int, project_id: Int, text: String) = this(id, project_id, text, System.currentTimeMillis(), false)
-  def this(id: Int, project_id: Int, text: String, timestamp: Long) = this(id, project_id, text, timestamp, false)
+  def this(id: Int, project_id: Int, text: String) = this(id, project_id, text, false, System.currentTimeMillis())
+  def this(id: Int, project_id: Int, text: String, is_done: Boolean) = this(id, project_id, text, is_done, System.currentTimeMillis())
 
   override def toString: String = {
     s"Todo on timestamp: ${this.timestamp}, is done: ${this.is_done}, with text: ${this.text}\n"
@@ -37,7 +38,7 @@ object TODOEntry {
         timestamp  <- cursor.downField("timestamp").as[Long]
         is_done    <- cursor.downField("is_done").as[Boolean]
       } yield {
-        new TODOEntry(id, project_id, text, timestamp, is_done)
+        new TODOEntry(id, project_id, text, is_done, timestamp)
       }
   }
 
@@ -49,7 +50,7 @@ class TODOEntryTemplate[Builder, Output <: FragT, FragT](val bundle: Bundle[Buil
   import bundle.all._
 
   def singleTemplate(todo: TODOEntry) = {
-    tr(attr("data-id") := todo.id)(
+    tr(attr("data-id") := todo.id, attr("data-is_done") := todo.is_done, attr("data-json") := todo.asJson.noSpaces)(
 
       td(todo.id, width := 30, verticalAlign := "middle"),
 

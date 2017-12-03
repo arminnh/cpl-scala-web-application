@@ -83,8 +83,8 @@ object ProManApp extends App {
     (2, "read assignment", true), (2, "start"), (2, "do stuff"), (2, "finish"),
     (3, "Isolation Forest", true), (3, "Temporal feature extraction"), (3, "Plot anomalies on PCA")
   ).map{
-    case (p_id: Int, name: String) => TODOEntryRepository.create(p_id, name)
-    case (p_id: Int, name: String, is_done: Boolean) => TODOEntryRepository.create(p_id, name, is_done)
+    case (p_id: Int, name: String) => Thread.sleep(15); TODOEntryRepository.create(p_id, name)
+    case (p_id: Int, name: String, is_done: Boolean) => Thread.sleep(15); TODOEntryRepository.create(p_id, name, is_done)
   }
 
   println("SERVER NOW RUNNING")

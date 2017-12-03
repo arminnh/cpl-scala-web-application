@@ -32,7 +32,7 @@ object TODOEntryController {
   def update(request: Request, todo_id: Int): Task[Response] = {
     for {
       todo <- request.as(jsonOf[TODOEntry])
-      response <- Ok(TODOEntryRepository.update(todo_id, todo.text).asJson)
+      response <- Ok(TODOEntryRepository.update(todo_id, todo).asJson)
     } yield {
       println("Updated todo: " + todo)
       response
