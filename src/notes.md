@@ -2,6 +2,8 @@
 * When new todo's are added, set all event handlers correctly => maybe use the new insertTodoInTable method
 * Check whether ProjectScene@insertTodoInTable puts the new rows at the correct index. For existing todos and newly insterted todos.
 * multi-user functionality
+* extension: Render as much as you can on the server (e.g. initial project list should be rendered on the server): Move some html bits to a new shared class. e.g. lazy val start_scene_title = div(h1(...)).render.innerHTML
+add these things in the response in the controllers and replace the html bits in the scene js code.
 
 ## Timesheet
 * 03h20: First setup, learn about scala project structure. Created first 2 models and 2 controllers. Created root page that shows the projects in a list.
