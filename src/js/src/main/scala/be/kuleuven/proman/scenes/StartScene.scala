@@ -30,7 +30,9 @@ object StartScene {
     dom.document.getElementById("content").innerHTML = div(
       h2("Create a new project"),
       form(id := "form-create-project", action := "/projects/store", method := "post", cls := "form-inline")(
-        div(cls := "form-group")(input(tpe := "text", name := "name", placeholder := "Project title", cls := "form-control")),
+        div(cls := "form-group")(
+          input(tpe := "text", name := "name", placeholder := "Project title", cls := "form-control", autocomplete := "off")
+        ),
         button(tpe := "submit", cls := "btn", marginLeft := 15)("Create")
       ),
       h2("Open  a project"),
@@ -106,7 +108,8 @@ object StartScene {
                 showError("A project with that name already exists! Try again with a different name.")
               } else {
 
-                Ajax.post(form.action, name.asJson.toString()).onComplete {
+                //Ajax.post(form.action, name.asJson.toString()).onComplete {
+                Ajax.post(form.action, new TODOProject(name).asJson.noSpaces).onComplete {
                   case Failure(error) => errorAlert(error)
                   case Success(xhr2) =>
                     form.reset()

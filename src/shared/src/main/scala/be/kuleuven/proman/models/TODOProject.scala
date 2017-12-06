@@ -7,6 +7,7 @@ import scalatags.generic.Bundle
 
 
 class TODOProject(var id: Int, var name: String) {
+  def this(name: String) = this(-999, name)
   override def toString: String = s"Todo project: ${this.name}, id ${this.id}\n"
 }
 

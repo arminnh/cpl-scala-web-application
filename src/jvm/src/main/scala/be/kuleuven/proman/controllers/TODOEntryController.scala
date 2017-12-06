@@ -1,6 +1,6 @@
 package be.kuleuven.proman.controllers
 
-import be.kuleuven.proman.models.TODOEntry
+import be.kuleuven.proman.models._
 import be.kuleuven.proman.repositories._
 
 import fs2.Task
@@ -15,19 +15,12 @@ object TODOEntryController {
   def index(project_id: Int): Task[Response] = Ok(TODOEntryRepository.allForProject(project_id).asJson)
 
   def store(request: Request, project_id: Int): Task[Response] = {
-    request.as[String].flatMap(text => {
-      println("Storing new todo entry with text: " + text)
-      Ok(TODOEntryRepository.create(project_id, text).asJson)
+    //request.as[String].flatMap(text => {
+    request.as(jsonOf[TODOEntry]).flatMap(todo => {
+      println("Storing new todo entry with text: " + todo.text)
+      Ok(TODOEntryRepository.create(project_id, todo.text).asJson)
     })
   }
-
-//  def store(request: Request, project_id: Int): Task[Response] =
-//    for {
-//      name <- request.as[String]
-//      response <- Ok(TODOEntryRepository.create(project_id, name).asJson)
-//    } yield {
-//      response
-//    }
 
   def update(request: Request, todo_id: Int): Task[Response] = {
     for {

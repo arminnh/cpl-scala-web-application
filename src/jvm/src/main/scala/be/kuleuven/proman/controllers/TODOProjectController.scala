@@ -1,5 +1,6 @@
 package be.kuleuven.proman.controllers
 
+import be.kuleuven.proman.models._
 import be.kuleuven.proman.repositories._
 
 import fs2.Task
@@ -24,10 +25,10 @@ object TODOProjectController {
 
   def store(request: Request): Task[Response] =
     for {
-      name <- request.as[String]
-      response <- Ok(TODOProjectRepository.create(name).asJson)
+      project <- request.as(jsonOf[TODOProject])
+      response <- Ok(TODOProjectRepository.create(project.name).asJson)
     } yield {
-      println("Storing new project with name " + name)
+      println("Storing new project with name " + project.name)
       response
     }
 

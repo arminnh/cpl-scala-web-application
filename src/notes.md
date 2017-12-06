@@ -1,6 +1,4 @@
 ## TODO
-* When new todo's are added, set all event handlers correctly => maybe use the new insertTodoInTable method
-* Check whether ProjectScene@insertTodoInTable puts the new rows at the correct index. For existing todos and newly insterted todos.
 * multi-user functionality
 * extension: Render as much as you can on the server (e.g. initial project list should be rendered on the server): Move some html bits to a new shared class. e.g. lazy val start_scene_title = div(h1(...)).render.innerHTML
 add these things in the response in the controllers and replace the html bits in the scene js code.
@@ -23,5 +21,6 @@ add these things in the response in the controllers and replace the html bits in
     * ProjectScene now contains a button to go back to the StartScene (project index).
 * 01h45: Todo entries can now be updated. Removed Date class from TODOEntry entirely and used System.currentTimeMillis().
 * 03h00: Futher improved ProjectScene functionality. Only need to fix 2 small things. Updated code to be more prepared for multi-user functionality.
+* 00h50: Finished ProjectScene functionality & feel. 
 ---
-Total: **31h10**
+Total: **32h00**

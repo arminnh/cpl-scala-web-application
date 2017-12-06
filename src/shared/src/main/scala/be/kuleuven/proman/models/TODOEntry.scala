@@ -9,8 +9,9 @@ import scalatags.generic.Bundle
 
 class TODOEntry(var id: Int, var project_id: Int, var text: String, var is_done: Boolean, var timestamp: Long) {
 
-  def this(id: Int, project_id: Int, text: String) = this(id, project_id, text, false, System.currentTimeMillis())
   def this(id: Int, project_id: Int, text: String, is_done: Boolean) = this(id, project_id, text, is_done, System.currentTimeMillis())
+  def this(id: Int, project_id: Int, text: String) = this(id, project_id, text, false)
+  def this(text: String) = this(-999, -999, text)
 
   override def toString: String = {
     s"Todo on timestamp: ${this.timestamp}, is done: ${this.is_done}, with text: ${this.text}\n"

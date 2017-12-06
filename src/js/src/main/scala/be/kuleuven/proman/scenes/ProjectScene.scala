@@ -4,6 +4,7 @@ import be.kuleuven.proman.{errorAlert, formatTimeStamp, hideError, showError}
 import be.kuleuven.proman.models._
 
 import scala.util.{Failure, Success}
+import scala.util.control.Breaks._
 import scala.concurrent.ExecutionContext.Implicits.global
 import io.circe.syntax._
 import io.circe.parser.decode
@@ -28,13 +29,17 @@ object ProjectScene {
     dom.document.title = "Project: " + project.name
     dom.document.getElementById("top-title").innerHTML = div(
       h1("Project: " + project.name, fontSize := 36),
-      button(id := "back-to-start", cls := "btn btn-xs btn-primary")(span(cls := "glyphicon glyphicon-arrow-left"), " back")
+      button(id := "back-to-start", cls := "btn btn-xs btn-primary")(
+        span(cls := "glyphicon glyphicon-arrow-left"), " back"
+      )
     ).render.innerHTML
 
     dom.document.getElementById("content").innerHTML = div(
       h2("Create a new entry"),
       form(id := "form-create-todo", action := s"/todos/${project.id}/store", method := "post", cls := "form-inline")(
-        div(cls := "form-group")(input(tpe := "text", name := "name", placeholder := "Message", cls := "form-control")),
+        div(cls := "form-group")(
+          input(tpe := "text", name := "name", placeholder := "Message", cls := "form-control", autocomplete := "off")
+        ),
         button(tpe := "submit", cls := "btn btn-primary", marginLeft := 15)("Create")
       ),
       h2("Pending TODOs"),
@@ -43,7 +48,7 @@ object ProjectScene {
       div(id := "finished-todo-container")
     ).render.innerHTML
 
-    dom.document.getElementById("form-create-todo").asInstanceOf[Form].onsubmit = Any.fromFunction1((e: Event)  => {
+    dom.document.getElementById("form-create-todo").asInstanceOf[Form].onsubmit = Any.fromFunction1((e: Event) => {
       e.preventDefault()
       submitNewTodo(e.srcElement.asInstanceOf[Form])
     })
@@ -68,7 +73,7 @@ object ProjectScene {
 
             // move tr to other table
             tr.parentNode.removeChild(tr)
-            insertTodoInTable(todo)
+            createTodoInTable(todo)
 
             updatedM match {
               case Left(error) => errorAlert(error)
@@ -99,37 +104,34 @@ object ProjectScene {
     }
   }
 
-  def insertTodoInTable(new_todo: TODOEntry): Unit = {
+  def createTodoInTable(new_todo: TODOEntry): Unit = {
     val containerID = if (new_todo.is_done) "finished-todo-container" else "pending-todo-container"
     val tbody = dom.document.getElementById(containerID).getElementsByTagName("tbody").item(0).asInstanceOf[TableSection]
-    println("found tbody")
+    println("found tbody, children: " + tbody.childElementCount)
+
     // Find index where to insert the new row at.
     var i = 0
-
-    if (tbody.childElementCount > 0) {
-      var timestamp = 0L
-      do {
-        println("fetching timestamp at index " + i)
-        timestamp = tbody.childNodes.item(i).asInstanceOf[TableRow]
+    breakable {
+      while (i < tbody.childElementCount) {
+        val timestamp = tbody.childNodes.item(i).asInstanceOf[TableRow]
           .getElementsByClassName("todo-timestamp").item(0).asInstanceOf[TableCell]
           .getAttribute("data-timestamp").toLong
 
-        println("got timestamp at index " + i)
-
-        i += 1
-      } while (i < tbody.childElementCount && new_todo.timestamp <= timestamp)
+        if (new_todo.timestamp < timestamp) {
+          i += 1
+        } else {
+          println("break")
+          break
+        }
+      }
     }
 
-    println(i)
+    println("Position: " + i)
     // Insert the new todo row.
-    val tempRow = tbody.insertRow(i - 1)
-    println("inserted temprow " + tempRow)
+    val tempRow = tbody.insertRow(i)
     val newRow = tbody.insertBefore(todo_entry_ui.singleTemplate(new_todo).render, tempRow)
-    println("newRow" + newRow)
     tbody.removeChild(tempRow)
-    println("removed temprow")
     setupTodoTableRow(newRow.asInstanceOf[TableRow])
-    println("setup newrow")
   }
 
   def setupScene(project: TODOProject): Unit = {
@@ -203,7 +205,6 @@ object ProjectScene {
             }
           })
 
-          println("set focus")
           input_node.focus()
           input_node.setSelectionRange(input_node.value.length, input_node.value.length)
         }
@@ -219,7 +220,8 @@ object ProjectScene {
     if (name.length() == 0) {
       showError("Fill in a message first!")
     } else {
-      Ajax.post(form.action, name.asJson.noSpaces).onComplete {
+      //Ajax.post(form.action, name.asJson.noSpaces).onComplete {
+      Ajax.post(form.action, new TODOEntry(name).asJson.noSpaces).onComplete {
         case Failure(error) => errorAlert(error)
 
         case Success(xhr) =>
@@ -228,16 +230,7 @@ object ProjectScene {
 
           new_todo match {
             case Left(error) => errorAlert(error)
-            case Right(todo) =>
-              val new_entry = this.todo_entry_ui.singleTemplate(todo).render
-
-              // Format timestamp.
-              val td_timestamp = new_entry.getElementsByClassName("todo-timestamp").asInstanceOf[NodeListOf[TableDataCell]].item(0)
-              td_timestamp.innerHTML = formatTimeStamp(td_timestamp.getAttribute("data-timestamp").toLong)
-
-              // Add new entry at top of table.
-              val tbody = dom.document.getElementById("pending-todo-container").asInstanceOf[Div].firstChild.firstChild.firstChild
-              tbody.insertBefore(new_entry, tbody.firstChild)
+            case Right(todo) => createTodoInTable(todo)
           }
       }
     }
