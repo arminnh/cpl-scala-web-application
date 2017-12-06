@@ -6,7 +6,7 @@ import cats.syntax.either._
 import scalatags.generic.Bundle
 
 
-class TODOProject(var id: Int, var name: String) {
+class TODOProject(var id: Long, var name: String) {
   def this(name: String) = this(-999, name)
   override def toString: String = s"Todo project: ${this.name}, id ${this.id}\n"
 }
@@ -15,7 +15,7 @@ class TODOProject(var id: Int, var name: String) {
 object TODOProject {
   implicit val encodeTODOProject: Encoder[TODOProject] = new Encoder[TODOProject] {
     final def apply(p: TODOProject): Json = Json.obj(
-      ("id", Json.fromInt(p.id)),
+      ("id", Json.fromLong(p.id)),
       ("name", Json.fromString(p.name))
     )
   }
@@ -23,7 +23,7 @@ object TODOProject {
   implicit val decodeTODOProject: Decoder[TODOProject] = new Decoder[TODOProject] {
     final def apply(cursor: HCursor): Decoder.Result[TODOProject] =
       for {
-        id <- cursor.downField("id").as[Int]
+        id <- cursor.downField("id").as[Long]
         name <- cursor.downField("name").as[String]
       } yield {
         new TODOProject(id, name)

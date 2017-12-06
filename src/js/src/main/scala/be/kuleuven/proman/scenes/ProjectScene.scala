@@ -19,7 +19,7 @@ import scala.scalajs.js.Any
 
 //noinspection AccessorLikeMethodIsUnit
 object ProjectScene {
-  var project_id: Int = -999
+  var project_id: Long = -999
   lazy val todo_entry_ui = new TODOEntryTemplate(scalatags.JsDom)
 
   def setupHTML(project: TODOProject): Unit = {
@@ -56,6 +56,34 @@ object ProjectScene {
     dom.document.getElementById("back-to-start").asInstanceOf[Button].onclick = Any.fromFunction1(_ => {
       StartScene.setupScene()
     })
+  }
+
+  def setupScene(project: TODOProject): Unit = {
+    setupHTML(project)
+
+    // Fetch project's todos and display them in tables.
+    Ajax.get(s"/todos/${project.id}/json").onComplete {
+      case Failure(error) => errorAlert(error)
+      case Success(xhr) =>
+        val todosM = decode[Seq[TODOEntry]](xhr.responseText)
+
+        todosM match {
+          case Left(error) => errorAlert(error)
+          case Right(todos) =>
+
+            val pending_todo_target = dom.document.getElementById("pending-todo-container")
+            pending_todo_target.appendChild(this.todo_entry_ui.multipleTemplate(todos.filter(_.is_done == false)).render)
+
+            val finished_todo_target = dom.document.getElementById("finished-todo-container")
+            finished_todo_target.appendChild(this.todo_entry_ui.multipleTemplate(todos.filter(_.is_done == true)).render)
+
+            val trs = dom.document.getElementsByTagName("tr").asInstanceOf[NodeListOf[TableRow]]
+            for (i <- 0 until trs.length) {
+              val tr = trs.item(i)
+              setupTodoTableRow(tr)
+            }
+        }
+    }
   }
 
   def updateTODOIsDoneStatus(tr: TableRow, is_done: Boolean): Unit = {
@@ -132,34 +160,6 @@ object ProjectScene {
     val newRow = tbody.insertBefore(todo_entry_ui.singleTemplate(new_todo).render, tempRow)
     tbody.removeChild(tempRow)
     setupTodoTableRow(newRow.asInstanceOf[TableRow])
-  }
-
-  def setupScene(project: TODOProject): Unit = {
-    setupHTML(project)
-
-    // Fetch project's todos and display them in tables.
-    Ajax.get(s"/todos/${project.id}/json").onComplete {
-      case Failure(error) => errorAlert(error)
-      case Success(xhr) =>
-        val todosM = decode[Seq[TODOEntry]](xhr.responseText)
-
-        todosM match {
-          case Left(error) => errorAlert(error)
-          case Right(todos) =>
-
-            val pending_todo_target = dom.document.getElementById("pending-todo-container")
-            pending_todo_target.appendChild(this.todo_entry_ui.multipleTemplate(todos.filter(_.is_done == false)).render)
-
-            val finished_todo_target = dom.document.getElementById("finished-todo-container")
-            finished_todo_target.appendChild(this.todo_entry_ui.multipleTemplate(todos.filter(_.is_done == true)).render)
-
-            val trs = dom.document.getElementsByTagName("tr").asInstanceOf[NodeListOf[TableRow]]
-            for (i <- 0 until trs.length) {
-              val tr = trs.item(i)
-              setupTodoTableRow(tr)
-            }
-        }
-    }
   }
 
   def setupTodoTableRow(tr: TableRow): Unit = {

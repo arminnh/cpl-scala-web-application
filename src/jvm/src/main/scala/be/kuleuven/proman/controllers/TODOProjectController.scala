@@ -14,7 +14,7 @@ object TODOProjectController {
 
   def index: Task[Response] = Ok(TODOProjectRepository.all().asJson)
 
-  def get(id: Int): Task[Response] = {
+  def get(id: Long): Task[Response] = {
     val project = TODOProjectRepository.find(id)
     if (project != null) {
       Ok(project.asJson)
@@ -28,13 +28,15 @@ object TODOProjectController {
       project <- request.as(jsonOf[TODOProject])
       response <- Ok(TODOProjectRepository.create(project.name).asJson)
     } yield {
-      println("Storing new project with name " + project.name)
       response
     }
 
-  def exists(name: String): Task[Response] = {
-    println("Project exists?: " + name)
-    Ok(TODOProjectRepository.exists(name).asJson)
-  }
+  def exists(name: String): Task[Response] = Ok(TODOProjectRepository.exists(name).asJson)
 
+  def synchronise(state: Long): Task[Response] = Ok(
+    s"""{
+      "state": ${TODOProjectRepository.getState},
+      "projects": ${TODOProjectRepository.allUpdatedSinceState(state).asJson}
+    }"""
+  )
 }

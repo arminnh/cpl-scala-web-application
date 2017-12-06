@@ -22,5 +22,6 @@ add these things in the response in the controllers and replace the html bits in
 * 01h45: Todo entries can now be updated. Removed Date class from TODOEntry entirely and used System.currentTimeMillis().
 * 03h00: Futher improved ProjectScene functionality. Only need to fix 2 small things. Updated code to be more prepared for multi-user functionality.
 * 00h50: Finished ProjectScene functionality & feel. 
+* 03h00: First multi-user functionality for StartScene
 ---
-Total: **32h00**
+Total: **35h00**

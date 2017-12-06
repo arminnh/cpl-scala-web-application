@@ -5,8 +5,8 @@ import be.kuleuven.proman.models._
 
 import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global // implicit ExecutionContext for Future tasks
-import io.circe.syntax._
-import io.circe.parser.decode
+import io.circe.syntax._, io.circe.parser._, io.circe.Json
+import cats.syntax.either._
 //import io.circe.generic.auto._
 import org.scalajs.dom
 import org.scalajs.dom.ext.Ajax
@@ -18,6 +18,7 @@ import scala.scalajs.js.Any
 //noinspection AccessorLikeMethodIsUnit
 object StartScene {
   lazy val todo_project_ui = new TODOProjectTemplate(scalatags.JsDom)
+  var state: Long = -999
 
   def setupHTML(): Unit = {
     hideError()
@@ -33,10 +34,14 @@ object StartScene {
         div(cls := "form-group")(
           input(tpe := "text", name := "name", placeholder := "Project title", cls := "form-control", autocomplete := "off")
         ),
-        button(tpe := "submit", cls := "btn", marginLeft := 15)("Create")
+        button(tpe := "submit", cls := "btn btn-primary", marginLeft := 15)("Create")
       ),
       h2("Open  a project"),
-      div(id := "project-container")
+      div(id := "project-container")(
+        div(cls := "table-responsive")(
+          table(cls := "table table-condensed table-striped table-hover")(tbody)
+        )
+      )
     ).render.innerHTML
 
     dom.document.getElementById("form-create-project").asInstanceOf[Form].onsubmit = Any.fromFunction1((e: Event) => {
@@ -47,29 +52,25 @@ object StartScene {
 
   def setupScene(): Unit = {
     setupHTML()
+    state = 0
+    synchronise()
+    // TODO remove interval when moving to new page
+    dom.window.setInterval(Any.fromFunction0(() => synchronise()), 2500)
+  }
 
-    // Fetch projects and display them in a table.
-    Ajax.get("projects/json").onComplete {
-      case Failure(error) => errorAlert(error)
-      case Success(xhr) =>
-        val projectsM = decode[Seq[TODOProject]](xhr.responseText)
+  def addProjectsToTable(projects: Seq[TODOProject]): Unit = {
+    val tbody = dom.document.getElementById("project-container").getElementsByTagName("tbody").item(0).asInstanceOf[TableSection]
+    val tempRow = tbody.insertRow(0)
 
-        projectsM match {
-          case Left(error) => errorAlert(error)
-          case Right(projects) =>
-            dom.document.getElementById("project-container").appendChild(todo_project_ui.multipleTemplate(projects).render)
+    // Insert projects in table and set onclick event handler.
+    projects.foreach(project => {
+      val row = tbody.insertBefore(todo_project_ui.singleTemplate(project).render, tempRow).asInstanceOf[TableRow]
 
-            // Set event handlers on project anchors.
-            val project_anchors = dom.document.getElementsByClassName("project-anchor").asInstanceOf[NodeListOf[Anchor]]
-            for (i <- 0 until project_anchors.length) {
-              val anchor = project_anchors.item(i)
-              anchor.onclick = Any.fromFunction1(_ => {
-                getProjectAndShow(anchor.getAttribute("data-id").toInt)
-                // dom.window.history.pushState("", dom.document.title, dom.window.location.pathname)
-              })
-            }
-        }
-    }
+      val anchor = row.getElementsByClassName("project-anchor").item(0).asInstanceOf[Anchor]
+      anchor.onclick = Any.fromFunction1(_ => getProjectAndShow(anchor.getAttribute("data-id").toInt))
+    })
+
+    tbody.removeChild(tempRow)
   }
 
   def getProjectAndShow(id: Int): Unit = {
@@ -81,6 +82,8 @@ object StartScene {
         projectM match {
           case Left(error) => errorAlert(error)
           case Right(project) => {
+            // TODO" check what this does again
+//            dom.window.history.pushState("", dom.document.title, dom.window.location.pathname)
             ProjectScene.setupScene(project)
           }
         }
@@ -113,11 +116,11 @@ object StartScene {
                   case Failure(error) => errorAlert(error)
                   case Success(xhr2) =>
                     form.reset()
-                    val new_project = decode[TODOProject](xhr2.responseText)
+                    val new_projectM = decode[TODOProject](xhr2.responseText)
 
-                    new_project match {
+                    new_projectM match {
                       case Left(error) => errorAlert(error)
-                      case Right(project) => ProjectScene.setupScene(project)
+                      case Right(new_project) => ProjectScene.setupScene(new_project)
                     }
                 }
               }
@@ -125,6 +128,23 @@ object StartScene {
           }
         }
       }
+    }
+  }
+
+  def synchronise(): Unit = {
+    println("synchronising for state: " + this.state)
+
+    Ajax.get("projects/sync/"+state).onComplete {
+      case Failure(error) => errorAlert(error)
+      case Success(xhr) =>
+        parse(xhr.responseText) match {
+          case Left(error) => errorAlert(error)
+          case Right(json) =>
+            val projects: Seq[TODOProject] = json.hcursor.downField("projects").as[Seq[TODOProject]].getOrElse(List())
+            addProjectsToTable(projects)
+
+            this.state = json.hcursor.downField("state").as[Long].getOrElse(this.state)
+        }
     }
   }
 }

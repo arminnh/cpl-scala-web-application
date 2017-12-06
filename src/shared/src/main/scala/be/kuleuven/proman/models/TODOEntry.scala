@@ -7,10 +7,10 @@ import cats.syntax.either._
 import scalatags.generic.Bundle
 
 
-class TODOEntry(var id: Int, var project_id: Int, var text: String, var is_done: Boolean, var timestamp: Long) {
+class TODOEntry(var id: Long, var project_id: Long, var text: String, var is_done: Boolean, var timestamp: Long) {
 
-  def this(id: Int, project_id: Int, text: String, is_done: Boolean) = this(id, project_id, text, is_done, System.currentTimeMillis())
-  def this(id: Int, project_id: Int, text: String) = this(id, project_id, text, false)
+  def this(id: Long, project_id: Long, text: String, is_done: Boolean) = this(id, project_id, text, is_done, System.currentTimeMillis())
+  def this(id: Long, project_id: Long, text: String) = this(id, project_id, text, false)
   def this(text: String) = this(-999, -999, text)
 
   override def toString: String = {
@@ -22,8 +22,8 @@ class TODOEntry(var id: Int, var project_id: Int, var text: String, var is_done:
 object TODOEntry {
   implicit val encodeTODOEntry: Encoder[TODOEntry] = new Encoder[TODOEntry] {
     final def apply(t: TODOEntry): Json = Json.obj(
-      ("id",         Json.fromInt(t.id)),
-      ("project_id", Json.fromInt(t.project_id)),
+      ("id",         Json.fromLong(t.id)),
+      ("project_id", Json.fromLong(t.project_id)),
       ("text",       Json.fromString(t.text)),
       ("timestamp",  Json.fromLong(t.timestamp)),
       ("is_done",    Json.fromBoolean(t.is_done))
@@ -33,8 +33,8 @@ object TODOEntry {
   implicit val decodeTODOEntry: Decoder[TODOEntry] = new Decoder[TODOEntry] {
     final def apply(cursor: HCursor): Decoder.Result[TODOEntry] =
       for {
-        id         <- cursor.downField("id").as[Int]
-        project_id <- cursor.downField("project_id").as[Int]
+        id         <- cursor.downField("id").as[Long]
+        project_id <- cursor.downField("project_id").as[Long]
         text       <- cursor.downField("text").as[String]
         timestamp  <- cursor.downField("timestamp").as[Long]
         is_done    <- cursor.downField("is_done").as[Boolean]

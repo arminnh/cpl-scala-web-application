@@ -49,22 +49,24 @@ object ProManApp extends App {
 
   // Service that matches requests (at routes) to responses (by controller actions).
   val service: HttpService = HttpService {
-    case GET      -> Root                                       => TemporaryRedirect(uri("/projects"))
-    case GET      -> Root/"projects"                            => HTML
+    case GET      -> Root                                     => TemporaryRedirect(uri("/projects"))
+    case GET      -> Root/"projects"                          => HTML
 
-    case GET      -> Root/"projects"/"json"                     => TODOProjectController.index
-    case r @ POST -> Root/"projects"/"store"                    => TODOProjectController.store(r)
-    case GET      -> Root/"project"/IntVar(id)                  => TODOProjectController.get(id)
-    case GET      -> Root/"project"/"exists"/name               => TODOProjectController.exists(name)
+    case GET      -> Root/"projects"/"json"                   => TODOProjectController.index
+    case r @ POST -> Root/"projects"/"store"                  => TODOProjectController.store(r)
+    case GET      -> Root/"project"/id                        => TODOProjectController.get(id.toLong)
+    case GET      -> Root/"project"/"exists"/name             => TODOProjectController.exists(name)
+    case GET      -> Root/"projects"/"sync"/state             => TODOProjectController.synchronise(state.toLong)
 
-    case GET      -> Root/"todos"/IntVar(p_id)/"json"           => TODOEntryController.index(p_id)
-    case r @ POST -> Root/"todos"/IntVar(p_id)/"store"          => TODOEntryController.store(r, p_id)
-    case r @ PUT  -> Root/"todos"/IntVar(t_id)/"update"         => TODOEntryController.update(r, t_id)
+    case GET      -> Root/"todos"/project_id/"json"           => TODOEntryController.index(project_id.toLong)
+    case r @ POST -> Root/"todos"/project_id/"store"          => TODOEntryController.store(r, project_id.toLong)
+    case r @ PUT  -> Root/"todos"/todo_id/"update"            => TODOEntryController.update(r, todo_id.toLong)
+    case GET      -> Root/"todos"/"sync"/project_id/state     => TODOEntryController.synchronise(project_id.toLong, state.toLong)
 
     // Serve some files with specific extensions
-    case r @ GET  -> path~ext if fileExtensions.contains(ext)   => static(path.toList.mkString("/") + "." + ext, r)
+    case r @ GET  -> path~ext if fileExtensions.contains(ext) => static(path.toList.mkString("/") + "." + ext, r)
     // Catch all
-    case _        -> path                                       => NotFound("Not found!")
+    case _        -> path                                     => NotFound("Not found!")
   }
 
   // Serve a file
@@ -79,14 +81,13 @@ object ProManApp extends App {
   // Create some dummy projects and todos
   List("SCALA PROJECT", "GAE", "THESIS").map(TODOProjectRepository.create)
   List(
-    (1, "Some stuff", true), (1, "Some more stuff"), (1, "Even more stuff"), (1, "wtf"),
-    (2, "read assignment", true), (2, "start"), (2, "do stuff"), (2, "finish"),
-    (3, "Isolation Forest", true), (3, "Temporal feature extraction"), (3, "Plot anomalies on PCA")
+    (1L, "Some stuff", true), (1L, "Some more stuff"), (1L, "Even more stuff"), (1L, "wtf"),
+    (2L, "read assignment", true), (2L, "start"), (2L, "do stuff"), (2L, "finish"),
+    (3L, "Isolation Forest", true), (3L, "Temporal feature extraction"), (3L, "Plot anomalies on PCA")
   ).map{
-    case (p_id: Int, name: String) => Thread.sleep(15); TODOEntryRepository.create(p_id, name)
-    case (p_id: Int, name: String, is_done: Boolean) => Thread.sleep(15); TODOEntryRepository.create(p_id, name, is_done)
+    case (p_id: Long, name: String) => Thread.sleep(15); TODOEntryRepository.create(p_id, name)
+    case (p_id: Long, name: String, is_done: Boolean) => Thread.sleep(15); TODOEntryRepository.create(p_id, name, is_done)
   }
-
   println("SERVER NOW RUNNING")
 
   // Block on reading a line, makes it easy to stop in your terminal (hit enter).

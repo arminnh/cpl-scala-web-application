@@ -12,9 +12,9 @@ import org.http4s.dsl._
 
 object TODOEntryController {
 
-  def index(project_id: Int): Task[Response] = Ok(TODOEntryRepository.allForProject(project_id).asJson)
+  def index(project_id: Long): Task[Response] = Ok(TODOEntryRepository.allForProject(project_id).asJson)
 
-  def store(request: Request, project_id: Int): Task[Response] = {
+  def store(request: Request, project_id: Long): Task[Response] = {
     //request.as[String].flatMap(text => {
     request.as(jsonOf[TODOEntry]).flatMap(todo => {
       println("Storing new todo entry with text: " + todo.text)
@@ -22,7 +22,7 @@ object TODOEntryController {
     })
   }
 
-  def update(request: Request, todo_id: Int): Task[Response] = {
+  def update(request: Request, todo_id: Long): Task[Response] = {
     for {
       todo <- request.as(jsonOf[TODOEntry])
       response <- Ok(TODOEntryRepository.update(todo_id, todo).asJson)
@@ -30,5 +30,9 @@ object TODOEntryController {
       println("Updated todo: " + todo)
       response
     }
+  }
+
+  def synchronise(project_id: Long, state: Long): Task[Response] = {
+    Ok("")
   }
 }
