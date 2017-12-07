@@ -23,5 +23,6 @@ add these things in the response in the controllers and replace the html bits in
 * 03h00: Futher improved ProjectScene functionality. Only need to fix 2 small things. Updated code to be more prepared for multi-user functionality.
 * 00h50: Finished ProjectScene functionality & feel. 
 * 03h00: First multi-user functionality for StartScene
+* 01h20: Finished and tweaker multi-user functionality for both scenes. Added documentation in scenes.
 ---
 Total: **35h00**

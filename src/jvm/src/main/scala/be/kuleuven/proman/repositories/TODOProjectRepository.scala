@@ -13,15 +13,8 @@ object TODOProjectRepository {
   // are not relevant anymore (this is when all current clients are up to date with a certain common state).
   private var state_changes: Map[Long, Long] = Map()
 
-  private def nextID: Long = {
-    id += 1
-    id
-  }
-
-  private def nextState: Long = {
-    state += 1
-    state
-  }
+  private def nextID: Long = { id += 1; id }
+  private def nextState: Long = { state += 1; state }
 
   def create(name: String): TODOProject = {
     val project = new TODOProject(nextID, name)
@@ -30,16 +23,21 @@ object TODOProjectRepository {
     project
   }
 
-  def all(): Seq[TODOProject] = this.projects
+  def all(): Seq[TODOProject] =
+    this.projects
 
-  def find(id: Long): TODOProject = this.projects.find(_.id == id).orNull
+  def find(id: Long): TODOProject =
+    this.projects.find(_.id == id).orNull
 
-  def exists(name: String): Boolean = this.projects.find(_.name == name).orNull != null
+  def exists(name: String): Boolean =
+    this.projects.find(_.name == name).orNull != null
 
-  def allUpdatedSinceState(state: Long): List[TODOProject] = this.state_changes.filterKeys(key => key > state).values
-    .toList.distinct.map(id => this.find(id))
-    .sortWith((p1, p2) => p1.id > p2.id)
+  def getState: Long =
+    this.state
 
-  def getState: Long = this.state
+  def allUpdatedSinceState(state: Long): List[TODOProject] =
+    this.state_changes.filterKeys(key => key > state).values
+      .toList.distinct.map(id => this.find(id))
+      .sortWith((p1, p2) => p1.id > p2.id)
 }
 

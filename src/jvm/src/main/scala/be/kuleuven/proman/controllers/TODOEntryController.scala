@@ -32,7 +32,10 @@ object TODOEntryController {
     }
   }
 
-  def synchronise(project_id: Long, state: Long): Task[Response] = {
-    Ok("")
-  }
+  def synchronise(project_id: Long, state: Long): Task[Response] = Ok(
+    s"""{
+      "state": ${TODOEntryRepository.getState},
+      "todos": ${TODOEntryRepository.allUpdatedSinceState(project_id, state).asJson}
+    }"""
+  )
 }
