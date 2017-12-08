@@ -16,10 +16,7 @@ object TodoEntryController {
 
   def store(request: Request, project_id: Long): Task[Response] = {
     //request.as[String].flatMap(text => {
-    request.as(jsonOf[TodoEntry]).flatMap(todo => {
-      println("Storing new todo entry with text: " + todo.text)
-      Ok(TodoEntryRepository.create(project_id, todo.text).asJson)
-    })
+    request.as(jsonOf[TodoEntry]).flatMap(todo => Ok(TodoEntryRepository.create(project_id, todo.text).asJson))
   }
 
   def update(request: Request, todo_id: Long): Task[Response] = {

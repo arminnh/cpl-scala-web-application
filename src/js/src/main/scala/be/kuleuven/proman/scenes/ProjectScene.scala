@@ -1,6 +1,6 @@
 package be.kuleuven.proman.scenes
 
-import be.kuleuven.proman.{printError, formatTimeStamp, hideError, showError}
+import be.kuleuven.proman.{printError, formatTimeStamp, hideError, showError, getFormFromEvent}
 import be.kuleuven.proman.models._
 
 import scala.util.{Failure, Success}
@@ -42,7 +42,7 @@ object ProjectScene {
           )
         )
       ),
-      form(id := "form-update-description", action := s"/project/${this.project.id}", method := "put", display := "none")(
+      form(id := "form-update-description", name := "form-update-description", action := s"/project/${this.project.id}", method := "put", display := "none")(
         br,
         div(cls := "form-group")(
           textarea(name := "description", placeholder := "The description of the project", cls := "form-control")
@@ -55,14 +55,25 @@ object ProjectScene {
       button(id := "back-to-start", cls := "btn btn-xs btn-primary", marginTop := 5)(
         span(cls := "glyphicon glyphicon-arrow-left"), " back"
       ),
-      h2("Create a new entry"),
-      form(id := "form-create-todo", action := s"/todos/${this.project.id}/store", method := "post", cls := "form-inline")(
-        div(cls := "form-group", marginRight := 15)(
-          input(tpe := "text", name := "name", placeholder := "Message", cls := "form-control", autocomplete := "off")
+      div(cls := "row")(
+        div(cls := "col-sm-6")(
+          h3("Create a new entry"),
+          form(id := "form-create-todo", name := "form-create-todo", action := s"/todos/${this.project.id}/store", method := "post", cls := "form-inline")(
+            div(cls := "form-group")(
+              input(tpe := "text", name := "name", placeholder := "Message",
+                    cls := "form-control", autocomplete := "off", marginRight := 15)
+            ),
+            button(tpe := "submit", cls := "btn btn-primary")("Create")
+          )
         ),
-        button(tpe := "submit", cls := "btn btn-primary")("Create")
+        div(cls := "col-sm-6")(
+          h3("Search"),
+          div(cls := "form-group")(
+            input(tpe := "text", name := "filter", placeholder := "Search by todo text", cls := "form-control", autocomplete := "off")
+          )
+        )
       ),
-      h2("Pending todos"),
+      h3("Pending todos"),
       div(id := "pending-todo-container")(
         div(cls := "table-responsive")(
           table(cls := "table table-condensed table-striped table-hover")(
@@ -70,7 +81,7 @@ object ProjectScene {
           )
         )
       ),
-      h2("Finished todos ", button(id := "finished-toggle", cls := "btn btn-sm btn-default")(span(cls := "caret caret-up"))),
+      h3("Finished todos ", button(id := "finished-toggle", cls := "btn btn-sm btn-default")(span(cls := "caret caret-up"))),
       div(id := "finished-todo-container")(
         div(cls := "table-responsive")(
           table(cls := "table table-condensed table-striped table-hover")(
@@ -96,12 +107,12 @@ object ProjectScene {
 
     dom.document.getElementById("form-update-description").asInstanceOf[Form].onsubmit = Any.fromFunction1((e: Event) => {
       e.preventDefault()
-      this.submitProjectUpdate(e.srcElement.asInstanceOf[Form])
+      this.submitProjectUpdate(getFormFromEvent(e))
     })
 
     dom.document.getElementById("form-create-todo").asInstanceOf[Form].onsubmit = Any.fromFunction1((e: Event) => {
       e.preventDefault()
-      this.submitNewTodo(e.srcElement.asInstanceOf[Form])
+      this.submitNewTodo(getFormFromEvent(e))
     })
 
     dom.document.getElementById("back-to-start").asInstanceOf[Button].onclick = Any.fromFunction1(_ => {
@@ -120,8 +131,8 @@ object ProjectScene {
   def setupScene(project: TodoProject): Unit = {
     this.project = project
     this.state = -999
-    setupHTML()
-    synchronise()
+    this.setupHTML()
+    this.synchronise()
     this.synchronisation_interval = dom.window.setInterval(Any.fromFunction0(() => synchronise()), 2500)
   }
 
@@ -209,7 +220,7 @@ object ProjectScene {
     val tempRow = tbody.insertRow(i)
     val newRow = tbody.insertBefore(todo_entry_ui.singleTemplate(new_todo).render, tempRow)
     tbody.removeChild(tempRow)
-    setupTodoTableRow(newRow.asInstanceOf[TableRow])
+    this.setupTodoTableRow(newRow.asInstanceOf[TableRow])
   }
 
   /**

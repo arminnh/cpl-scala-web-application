@@ -1,6 +1,6 @@
 package be.kuleuven.proman.scenes
 
-import be.kuleuven.proman.{printError, formatTimeStamp, hideError, showError}
+import be.kuleuven.proman.{printError, formatTimeStamp, hideError, showError, getFormFromEvent}
 import be.kuleuven.proman.models._
 
 import scala.util.{Failure, Success}
@@ -30,14 +30,25 @@ object StartScene {
     ).render.innerHTML
 
     dom.document.getElementById("content").innerHTML = div(
-      h2("Create a new project"),
-      form(id := "form-create-project", action := "/projects/store", method := "post", cls := "form-inline")(
-        div(cls := "form-group", marginRight := 15)(
-          input(tpe := "text", name := "name", placeholder := "Project title", cls := "form-control", autocomplete := "off")
+      div(cls := "row")(
+        div(cls := "col-sm-6")(
+          h3("Create a new project"),
+          form(id := "form-create-project", name := "form-create-project", action := "/projects/store", method := "post", cls := "form-inline")(
+            div(cls := "form-group")(
+              input(tpe := "text", name := "name", placeholder := "Project title",
+                    cls := "form-control", autocomplete := "off", marginRight := 15)
+            ),
+            button(tpe := "submit", cls := "btn btn-primary")("Create")
+          )
         ),
-        button(tpe := "submit", cls := "btn btn-primary")("Create")
+        div(cls := "col-sm-6")(
+          h3("Search"),
+          div(cls := "form-group")(
+            input(tpe := "text", name := "filter", placeholder := "Search by name", cls := "form-control", autocomplete := "off")
+          )
+        )
       ),
-      h2("Open  a project"),
+      h3("Open  a project"),
       div(id := "project-container")(
         div(cls := "table-responsive")(table(cls := "table table-condensed table-striped table-hover")(tbody))
       )
@@ -45,14 +56,14 @@ object StartScene {
 
     dom.document.getElementById("form-create-project").asInstanceOf[Form].onsubmit = Any.fromFunction1((e: Event) => {
       e.preventDefault()
-      submitNewProject(e.srcElement.asInstanceOf[Form])
+      this.submitNewProject(getFormFromEvent(e))
     })
   }
 
   def setupScene(): Unit = {
     this.state = -999
-    setupHTML()
-    synchronise()
+    this.setupHTML()
+    this.synchronise()
     this.synchronisation_interval = dom.window.setInterval(Any.fromFunction0(() => synchronise()), 2500)
   }
 
@@ -115,7 +126,7 @@ object StartScene {
         projectM match {
           case Left(error) => printError(error)
           case Right(project) => {
-            // TODO" check what this does again
+            // TODO" check what  this does again
             dom.window.history.pushState("", dom.document.title, dom.window.location.pathname)
             dom.window.clearInterval(this.synchronisation_interval)
             ProjectScene.setupScene(project)
