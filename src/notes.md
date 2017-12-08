@@ -24,5 +24,6 @@ add these things in the response in the controllers and replace the html bits in
 * 00h50: Finished ProjectScene functionality & feel. 
 * 03h00: First multi-user functionality for StartScene
 * 01h20: Finished and tweaker multi-user functionality for both scenes. Added documentation in scenes.
+* 02h10: Extensions: Project description (with multi-user) & hide finished todos 
 ---
-Total: **35h00**
+Total: **37h10**

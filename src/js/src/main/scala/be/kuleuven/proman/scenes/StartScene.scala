@@ -1,6 +1,6 @@
 package be.kuleuven.proman.scenes
 
-import be.kuleuven.proman.{errorAlert, formatTimeStamp, hideError, showError}
+import be.kuleuven.proman.{printError, formatTimeStamp, hideError, showError}
 import be.kuleuven.proman.models._
 
 import scala.util.{Failure, Success}
@@ -19,7 +19,7 @@ import scala.scalajs.js.Any
 object StartScene {
   var state: Long = -999
   var synchronisation_interval: Int = -999
-  lazy val todo_project_ui = new TODOProjectTemplate(scalatags.JsDom)
+  lazy val todo_project_ui = new TodoProjectTemplate(scalatags.JsDom)
 
   def setupHTML(): Unit = {
     hideError()
@@ -32,10 +32,10 @@ object StartScene {
     dom.document.getElementById("content").innerHTML = div(
       h2("Create a new project"),
       form(id := "form-create-project", action := "/projects/store", method := "post", cls := "form-inline")(
-        div(cls := "form-group")(
+        div(cls := "form-group", marginRight := 15)(
           input(tpe := "text", name := "name", placeholder := "Project title", cls := "form-control", autocomplete := "off")
         ),
-        button(tpe := "submit", cls := "btn btn-primary", marginLeft := 15)("Create")
+        button(tpe := "submit", cls := "btn btn-primary")("Create")
       ),
       h2("Open  a project"),
       div(id := "project-container")(
@@ -50,8 +50,8 @@ object StartScene {
   }
 
   def setupScene(): Unit = {
-    setupHTML()
     this.state = -999
+    setupHTML()
     synchronise()
     this.synchronisation_interval = dom.window.setInterval(Any.fromFunction0(() => synchronise()), 2500)
   }
@@ -69,26 +69,26 @@ object StartScene {
     } else {
       val encodedName = scalajs.js.URIUtils.encodeURIComponent(name)
       Ajax.get("project/exists/" + encodedName).onComplete {
-        case Failure(error) => errorAlert(error)
+        case Failure(error) => printError(error)
         case Success(xhr) => {
           val existsM = decode[Boolean](xhr.responseText)
 
           existsM match {
-            case Left(error) => errorAlert(error)
+            case Left(error) => printError(error)
             case Right(exists) => {
               if (exists) {
                 showError("A project with that name already exists! Try again with a different name.")
               } else {
 
                 //Ajax.post(form.action, name.asJson.toString()).onComplete {
-                Ajax.post(form.action, new TODOProject(name).asJson.noSpaces).onComplete {
-                  case Failure(error) => errorAlert(error)
+                Ajax.post(form.action, new TodoProject(name).asJson.noSpaces).onComplete {
+                  case Failure(error) => printError(error)
                   case Success(xhr2) =>
                     form.reset()
-                    val new_projectM = decode[TODOProject](xhr2.responseText)
+                    val new_projectM = decode[TodoProject](xhr2.responseText)
 
                     new_projectM match {
-                      case Left(error) => errorAlert(error)
+                      case Left(error) => printError(error)
                       case Right(new_project) =>
                         dom.window.clearInterval(this.synchronisation_interval)
                         ProjectScene.setupScene(new_project)
@@ -108,12 +108,12 @@ object StartScene {
     */
   def getProjectAndShow(id: Int): Unit = {
     Ajax.get("/project/" + id).onComplete {
-      case Failure(error) => errorAlert(error)
+      case Failure(error) => printError(error)
       case Success(xhr) =>
-        val projectM = decode[TODOProject](xhr.responseText)
+        val projectM = decode[TodoProject](xhr.responseText)
 
         projectM match {
-          case Left(error) => errorAlert(error)
+          case Left(error) => printError(error)
           case Right(project) => {
             // TODO" check what this does again
             dom.window.history.pushState("", dom.document.title, dom.window.location.pathname)
@@ -128,7 +128,7 @@ object StartScene {
     * Inserts a list of projects into the project table.
     * @param projects: A list of projects to insert in the table.
     */
-  def createProjectsInTable(projects: Seq[TODOProject]): Unit = {
+  def createProjectsInTable(projects: Seq[TodoProject]): Unit = {
     val tbody = dom.document.getElementById("project-container").getElementsByTagName("tbody").item(0).asInstanceOf[TableSection]
     val tempRow = tbody.insertRow(0)
 
@@ -150,15 +150,14 @@ object StartScene {
     * list of projects can only be new projects since that's all that can be done with the current requirements.
     */
   def synchronise(): Unit = {
-    println("synchronising for state: " + this.state)
-
     Ajax.get("projects/sync/" + this.state).onComplete {
-      case Failure(error) => errorAlert(error)
+      case Failure(error) => printError(error)
       case Success(xhr) =>
+        println("synchronising for state: " + this.state + ", response: " + xhr.responseText)
         parse(xhr.responseText) match {
-          case Left(error) => errorAlert(error)
+          case Left(error) => printError(error)
           case Right(json) =>
-            val projects: Seq[TODOProject] = json.hcursor.downField("projects").as[Seq[TODOProject]].getOrElse(List())
+            val projects: Seq[TodoProject] = json.hcursor.downField("projects").as[Seq[TodoProject]].getOrElse(List())
             createProjectsInTable(projects)
 
             this.state = json.hcursor.downField("state").as[Long].getOrElse(this.state)

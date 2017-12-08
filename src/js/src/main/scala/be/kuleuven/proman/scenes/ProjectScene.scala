@@ -1,6 +1,6 @@
 package be.kuleuven.proman.scenes
 
-import be.kuleuven.proman.{errorAlert, formatTimeStamp, hideError, showError}
+import be.kuleuven.proman.{printError, formatTimeStamp, hideError, showError}
 import be.kuleuven.proman.models._
 
 import scala.util.{Failure, Success}
@@ -20,54 +20,107 @@ import scala.scalajs.js.Any
 //noinspection AccessorLikeMethodIsUnit
 object ProjectScene {
   var state: Long = -999
-  var project_id: Long = -999
+  var project: TodoProject = _
   var synchronisation_interval: Int = -999
-  lazy val todo_entry_ui = new TODOEntryTemplate(scalatags.JsDom)
+  lazy val todo_entry_ui = new TodoEntryTemplate(scalatags.JsDom)
 
-  def setupHTML(project: TODOProject): Unit = {
+  def setupHTML(): Unit = {
     hideError()
 
-    dom.document.title = "Project: " + project.name
+    dom.document.title = "Project: " + this.project.name
     dom.document.getElementById("top-title").innerHTML = div(
-      h1("Project: " + project.name, fontSize := 36),
-      button(id := "back-to-start", cls := "btn btn-xs btn-primary")(
-        span(cls := "glyphicon glyphicon-arrow-left"), " back"
+      h1("Project: " + this.project.name, fontSize := 36),
+      div(cls := "clearfix")(
+        div(cls := "pull-left")(
+          p(id := "project-description", whiteSpace := "pre-wrap")(
+            this.project.description
+          )
+        ),
+        div(cls := "pull-right")(
+          button(id := "btn-edit-description", cls := "btn btn-xs btn-default", title:= "edit")(
+            span(cls := "glyphicon glyphicon-pencil"), " edit"
+          )
+        )
+      ),
+      form(id := "form-update-description", action := s"/project/${this.project.id}", method := "put", display := "none")(
+        br,
+        div(cls := "form-group")(
+          textarea(name := "description", placeholder := "The description of the project", cls := "form-control")
+        ),
+        button(tpe := "submit", cls := "btn btn-primary")("Submit")
       )
     ).render.innerHTML
 
     dom.document.getElementById("content").innerHTML = div(
+      button(id := "back-to-start", cls := "btn btn-xs btn-primary", marginTop := 5)(
+        span(cls := "glyphicon glyphicon-arrow-left"), " back"
+      ),
       h2("Create a new entry"),
-      form(id := "form-create-todo", action := s"/todos/${project.id}/store", method := "post", cls := "form-inline")(
-        div(cls := "form-group")(
+      form(id := "form-create-todo", action := s"/todos/${this.project.id}/store", method := "post", cls := "form-inline")(
+        div(cls := "form-group", marginRight := 15)(
           input(tpe := "text", name := "name", placeholder := "Message", cls := "form-control", autocomplete := "off")
         ),
-        button(tpe := "submit", cls := "btn btn-primary", marginLeft := 15)("Create")
+        button(tpe := "submit", cls := "btn btn-primary")("Create")
       ),
-      h2("Pending TODOs"),
+      h2("Pending todos"),
       div(id := "pending-todo-container")(
-        div(cls := "table-responsive")(table(cls := "table table-condensed table-striped table-hover")(tbody))
+        div(cls := "table-responsive")(
+          table(cls := "table table-condensed table-striped table-hover")(
+            tbody
+          )
+        )
       ),
-      h2("Finished TODOs"),
+      h2("Finished todos ", button(id := "finished-toggle", cls := "btn btn-sm btn-default")(span(cls := "caret caret-up"))),
       div(id := "finished-todo-container")(
-        div(cls := "table-responsive")(table(cls := "table table-condensed table-striped table-hover")(tbody))
+        div(cls := "table-responsive")(
+          table(cls := "table table-condensed table-striped table-hover")(
+            tbody
+          )
+        )
       )
     ).render.innerHTML
 
+    dom.document.getElementById("btn-edit-description").asInstanceOf[Button].onclick = Any.fromFunction1(_ => {
+      val form = dom.document.getElementById("form-update-description").asInstanceOf[Form]
+      val p = dom.document.getElementById("project-description").asInstanceOf[Paragraph]
+
+      if (form.style.display == "none") {
+        form.elements.namedItem("description").asInstanceOf[TextArea].value = this.project.description
+        form.style.display = "block"
+        p.style.display = "none"
+      } else {
+        form.style.display = "none"
+        p.style.display = "block"
+      }
+    })
+
+    dom.document.getElementById("form-update-description").asInstanceOf[Form].onsubmit = Any.fromFunction1((e: Event) => {
+      e.preventDefault()
+      this.submitProjectUpdate(e.srcElement.asInstanceOf[Form])
+    })
+
     dom.document.getElementById("form-create-todo").asInstanceOf[Form].onsubmit = Any.fromFunction1((e: Event) => {
       e.preventDefault()
-      submitNewTodo(e.srcElement.asInstanceOf[Form])
+      this.submitNewTodo(e.srcElement.asInstanceOf[Form])
     })
 
     dom.document.getElementById("back-to-start").asInstanceOf[Button].onclick = Any.fromFunction1(_ => {
       dom.window.clearInterval(this.synchronisation_interval)
       StartScene.setupScene()
     })
+
+    val finished_toggle = dom.document.getElementById("finished-toggle").asInstanceOf[Button]
+    finished_toggle.onclick = Any.fromFunction1(_ => {
+      val container = dom.document.getElementById("finished-todo-container").asInstanceOf[Div]
+      container.style.display = if (container.style.display == "none") "block" else "none"
+      finished_toggle.firstChild.asInstanceOf[Span].classList.toggle("caret-up")
+    })
   }
 
-  def setupScene(project: TODOProject): Unit = {
-    setupHTML(project)
-    this.project_id = project.id
+  def setupScene(project: TodoProject): Unit = {
+    this.project = project
     this.state = -999
+    setupHTML()
     synchronise()
     this.synchronisation_interval = dom.window.setInterval(Any.fromFunction0(() => synchronise()), 2500)
   }
@@ -78,24 +131,24 @@ object ProjectScene {
     * @param is_done: The new is_done value.
     */
   def updateTODOIsDoneStatus(tr: TableRow, is_done: Boolean): Unit = {
-    val todoM = decode[TODOEntry](tr.getAttribute("data-json"))
+    val todoM = decode[TodoEntry](tr.getAttribute("data-json"))
 
     todoM match {
-      case Left(error) => errorAlert(error)
+      case Left(error) => printError(error)
       case Right(todo) =>
         todo.is_done = is_done
 
         Ajax.put(s"/todos/${todo.id}/update", todo.asJson.noSpaces).onComplete {
-          case Failure(error) => errorAlert(error)
+          case Failure(error) => printError(error)
           case Success(xhr) =>
-            val updatedM = decode[TODOEntry](xhr.responseText)
+            val updatedM = decode[TodoEntry](xhr.responseText)
 
             // move tr to other table
             tr.parentNode.removeChild(tr)
             createTodoInTable(todo)
 
             updatedM match {
-              case Left(error) => errorAlert(error)
+              case Left(error) => printError(error)
               case Right(updated) => tr.setAttribute("data-json", updated.asJson.noSpaces)
             }
         }
@@ -108,20 +161,20 @@ object ProjectScene {
     * @param text: The the new text value.
     */
   def updateTODOText(tr: TableRow, text: String): Unit = {
-    val todoM = decode[TODOEntry](tr.getAttribute("data-json"))
+    val todoM = decode[TodoEntry](tr.getAttribute("data-json"))
 
     todoM match {
-      case Left(error) => errorAlert(error)
+      case Left(error) => printError(error)
       case Right(todo) =>
         todo.text = text
 
         Ajax.put(s"/todos/${todo.id}/update", todo.asJson.noSpaces).onComplete {
-          case Failure(error) => errorAlert(error)
+          case Failure(error) => printError(error)
           case Success(xhr) =>
-            val updatedM = decode[TODOEntry](xhr.responseText)
+            val updatedM = decode[TodoEntry](xhr.responseText)
 
             updatedM match {
-              case Left(error) => errorAlert(error)
+              case Left(error) => printError(error)
               case Right(updated) => tr.setAttribute("data-json", updated.asJson.noSpaces)
             }
         }
@@ -129,10 +182,10 @@ object ProjectScene {
   }
 
   /**
-    * Creates a new TableRow in the correct table for a TODOEntry.
-    * @param new_todo: The new TODOEntry.
+    * Creates a new TableRow in the correct table for a TodoEntry.
+    * @param new_todo: The new TodoEntry.
     */
-  def createTodoInTable(new_todo: TODOEntry): Unit = {
+  def createTodoInTable(new_todo: TodoEntry): Unit = {
     val containerID = if (new_todo.is_done) "finished-todo-container" else "pending-todo-container"
     val tbody = dom.document.getElementById(containerID).getElementsByTagName("tbody").item(0).asInstanceOf[TableSection]
 
@@ -160,7 +213,7 @@ object ProjectScene {
   }
 
   /**
-    * Sets up event handlers for a TODOEntry's TableRow.
+    * Sets up event handlers for a TodoEntry's TableRow.
     * @param tr: The TableRow to set the handlers on.
     */
   def setupTodoTableRow(tr: TableRow): Unit = {
@@ -215,6 +268,30 @@ object ProjectScene {
   }
 
   /**
+    * Submits an update to the currently opened project's description.
+    * @param form: The form to be submitted.
+    */
+  def submitProjectUpdate(form: Form): Unit = {
+    val description = form.elements.namedItem("description").asInstanceOf[TextArea].value
+    this.project.description = description
+
+    Ajax.put(form.action, this.project.asJson.noSpaces).onComplete {
+      case Failure(error) => printError(error)
+      case Success(xhr) =>
+        val updatedM = decode[TodoProject](xhr.responseText)
+
+        updatedM match {
+          case Left(error) => printError(error)
+          case Right(updated) =>
+            this.project = updated
+            dom.document.getElementById("project-description").innerHTML = description
+            dom.document.getElementById("btn-edit-description").asInstanceOf[Button].click()
+        }
+    }
+
+  }
+
+  /**
     * Submits a new todo entry and adds it to the correct table if it has been created successfully.
     * @param form: The form to be submitted.
     */
@@ -227,15 +304,15 @@ object ProjectScene {
       showError("Fill in a message first!")
     } else {
       //Ajax.post(form.action, name.asJson.noSpaces).onComplete {
-      Ajax.post(form.action, new TODOEntry(name).asJson.noSpaces).onComplete {
-        case Failure(error) => errorAlert(error)
+      Ajax.post(form.action, new TodoEntry(name).asJson.noSpaces).onComplete {
+        case Failure(error) => printError(error)
 
         case Success(xhr) =>
           form.reset()
-          val new_todo = decode[TODOEntry](xhr.responseText)
+          val new_todo = decode[TodoEntry](xhr.responseText)
 
           new_todo match {
-            case Left(error) => errorAlert(error)
+            case Left(error) => printError(error)
             case Right(todo) => createTodoInTable(todo)
           }
       }
@@ -248,18 +325,23 @@ object ProjectScene {
     * created since the last synchronisation.
     */
   def synchronise(): Unit = {
-    println("synchronising for state: " + this.state)
-
-    Ajax.get("todos/sync/" + this.project_id + "/" + this.state).onComplete {
-      case Failure(error) => errorAlert(error)
+    Ajax.get("todos/sync/" + this.state + "/" + this.project.id + "/" + this.project.version).onComplete {
+      case Failure(error) => printError(error)
       case Success(xhr) =>
+        println("synchronising for state: " + this.state + ", response: " + xhr.responseText)
         parse(xhr.responseText) match {
-          case Left(error) => errorAlert(error)
+          case Left(error) => printError(error)
           case Right(json) =>
-            val todos: Seq[TODOEntry] = json.hcursor.downField("todos").as[Seq[TODOEntry]].getOrElse(List())
+            val todos: Seq[TodoEntry] = json.hcursor.downField("todos").as[Seq[TodoEntry]].getOrElse(List())
             this.updateTodos(todos)
 
             this.state = json.hcursor.downField("state").as[Long].getOrElse(this.state)
+
+            val project: TodoProject = json.hcursor.downField("project").as[TodoProject].getOrElse(null)
+            if (project != null) {
+              this.project = project
+              dom.document.getElementById("project-description").innerHTML = this.project.description
+            }
         }
     }
   }
@@ -271,7 +353,7 @@ object ProjectScene {
     *
     * @param todos List of updated or new todos since last synchronisation.
     */
-  def updateTodos(todos: Seq[TODOEntry]): Unit = {
+  def updateTodos(todos: Seq[TodoEntry]): Unit = {
     todos.foreach(todo => {
       val rows = dom.document.querySelectorAll(s"""[data-id="${todo.id}"]""").asInstanceOf[NodeListOf[TableRow]]
       if (rows.length > 0) {

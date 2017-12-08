@@ -7,8 +7,7 @@ import cats.syntax.either._
 import scalatags.generic.Bundle
 
 
-class TODOEntry(var id: Long, var project_id: Long, var text: String, var is_done: Boolean, var timestamp: Long) {
-
+class TodoEntry(var id: Long, var project_id: Long, var text: String, var is_done: Boolean, var timestamp: Long) {
   def this(id: Long, project_id: Long, text: String, is_done: Boolean) = this(id, project_id, text, is_done, System.currentTimeMillis())
   def this(id: Long, project_id: Long, text: String) = this(id, project_id, text, false)
   def this(text: String) = this(-999, -999, text)
@@ -19,9 +18,9 @@ class TODOEntry(var id: Long, var project_id: Long, var text: String, var is_don
 }
 
 
-object TODOEntry {
-  implicit val encodeTODOEntry: Encoder[TODOEntry] = new Encoder[TODOEntry] {
-    final def apply(t: TODOEntry): Json = Json.obj(
+object TodoEntry {
+  implicit val encodeTodoEntry: Encoder[TodoEntry] = new Encoder[TodoEntry] {
+    final def apply(t: TodoEntry): Json = Json.obj(
       ("id",         Json.fromLong(t.id)),
       ("project_id", Json.fromLong(t.project_id)),
       ("text",       Json.fromString(t.text)),
@@ -30,8 +29,8 @@ object TODOEntry {
     )
   }
 
-  implicit val decodeTODOEntry: Decoder[TODOEntry] = new Decoder[TODOEntry] {
-    final def apply(cursor: HCursor): Decoder.Result[TODOEntry] =
+  implicit val decodeTodoEntry: Decoder[TodoEntry] = new Decoder[TodoEntry] {
+    final def apply(cursor: HCursor): Decoder.Result[TodoEntry] =
       for {
         id         <- cursor.downField("id").as[Long]
         project_id <- cursor.downField("project_id").as[Long]
@@ -39,7 +38,7 @@ object TODOEntry {
         timestamp  <- cursor.downField("timestamp").as[Long]
         is_done    <- cursor.downField("is_done").as[Boolean]
       } yield {
-        new TODOEntry(id, project_id, text, is_done, timestamp)
+        new TodoEntry(id, project_id, text, is_done, timestamp)
       }
   }
 
@@ -47,10 +46,10 @@ object TODOEntry {
 }
 
 
-class TODOEntryTemplate[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]) {
+class TodoEntryTemplate[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]) {
   import bundle.all._
 
-  def singleTemplate(todo: TODOEntry) = {
+  def singleTemplate(todo: TodoEntry) = {
     tr(attr("data-id") := todo.id, attr("data-is_done") := todo.is_done, attr("data-json") := todo.asJson.noSpaces)(
 
       td(todo.id, width := 30, verticalAlign := "middle"),
@@ -77,7 +76,7 @@ class TODOEntryTemplate[Builder, Output <: FragT, FragT](val bundle: Bundle[Buil
     )
   }
 
-  def multipleTemplate(todos: Seq[TODOEntry]) = {
+  def multipleTemplate(todos: Seq[TodoEntry]) = {
     div(cls := "table-responsive")(
       table(cls := "table table-condensed table-striped table-hover")(
         tbody(

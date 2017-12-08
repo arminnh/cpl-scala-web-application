@@ -1,10 +1,10 @@
 package be.kuleuven.proman.repositories
 
-import be.kuleuven.proman.models.TODOProject
+import be.kuleuven.proman.models.TodoProject
 
-object TODOProjectRepository {
+object TodoProjectRepository {
   private var id: Long = 0
-  private var projects: Seq[TODOProject] = Seq()
+  private var projects: Seq[TodoProject] = Seq()
 
   // Keep state as just a number that increments with every change to state.
   // Will be good enough for the given requirements.
@@ -16,28 +16,40 @@ object TODOProjectRepository {
   private def nextID: Long = { id += 1; id }
   private def nextState: Long = { state += 1; state }
 
-  def create(name: String): TODOProject = {
-    val project = new TODOProject(nextID, name)
+  def create(name: String): TodoProject = {
+    val project = new TodoProject(nextID, name)
     this.projects = project +: this.projects
     this.state_changes += (nextState -> project.id)
     project
   }
 
-  def all(): Seq[TODOProject] =
+  def all(): Seq[TodoProject] =
     this.projects
-
-  def find(id: Long): TODOProject =
-    this.projects.find(_.id == id).orNull
 
   def exists(name: String): Boolean =
     this.projects.find(_.name == name).orNull != null
 
+  def find(id: Long): TodoProject =
+    this.projects.find(_.id == id).orNull
+
+  def update(id: Long, project: TodoProject): TodoProject = {
+    project.version += 1
+    this.projects = this.projects.updated(this.projects.indexWhere(_.id == id), project)
+    this.state_changes += (nextState -> project.id)
+    project
+  }
+
   def getState: Long =
     this.state
 
-  def allUpdatedSinceState(state: Long): List[TODOProject] =
+  def allUpdatedSinceState(state: Long): List[TodoProject] =
     this.state_changes.filterKeys(key => key > state).values
       .toList.distinct.map(id => this.find(id))
       .sortWith((p1, p2) => p1.id > p2.id)
+
+  def getLaterVersionOrNull(id: Long, version: Int): TodoProject = {
+    val p = this.find(id)
+    if (p != null && p.version > version) p else null
+  }
 }
 

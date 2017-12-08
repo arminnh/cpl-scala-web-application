@@ -6,36 +6,42 @@ import cats.syntax.either._
 import scalatags.generic.Bundle
 
 
-class TODOProject(var id: Long, var name: String) {
+class TodoProject(var id: Long, var name: String, var description: String, var version: Int) {
+  def this(id: Long, name: String) = this(id, name, "Description of project " + name, 1)
   def this(name: String) = this(-999, name)
-  override def toString: String = s"Todo project: ${this.name}, id ${this.id}\n"
+
+  override def toString: String = s"Todo project: ${this.name}, id ${this.id}, version ${this.version}\n"
 }
 
 
-object TODOProject {
-  implicit val encodeTODOProject: Encoder[TODOProject] = new Encoder[TODOProject] {
-    final def apply(p: TODOProject): Json = Json.obj(
+object TodoProject {
+  implicit val encodeTodoProject: Encoder[TodoProject] = new Encoder[TodoProject] {
+    final def apply(p: TodoProject): Json = Json.obj(
       ("id", Json.fromLong(p.id)),
-      ("name", Json.fromString(p.name))
+      ("name", Json.fromString(p.name)),
+      ("description", Json.fromString(p.description)),
+      ("version", Json.fromInt(p.version))
     )
   }
 
-  implicit val decodeTODOProject: Decoder[TODOProject] = new Decoder[TODOProject] {
-    final def apply(cursor: HCursor): Decoder.Result[TODOProject] =
+  implicit val decodeTodoProject: Decoder[TodoProject] = new Decoder[TodoProject] {
+    final def apply(cursor: HCursor): Decoder.Result[TodoProject] =
       for {
         id <- cursor.downField("id").as[Long]
         name <- cursor.downField("name").as[String]
+        description <- cursor.downField("description").as[String]
+        version <- cursor.downField("version").as[Int]
       } yield {
-        new TODOProject(id, name)
+        new TodoProject(id, name, description, version)
       }
   }
 }
 
 
-class TODOProjectTemplate[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]) {
+class TodoProjectTemplate[Builder, Output <: FragT, FragT](val bundle: Bundle[Builder, Output, FragT]) {
   import bundle.all._
 
-  def singleTemplate(project: TODOProject) = {
+  def singleTemplate(project: TodoProject) = {
     tr(
       td(verticalAlign := "middle")(project.id),
       td(verticalAlign := "middle")(
@@ -44,7 +50,7 @@ class TODOProjectTemplate[Builder, Output <: FragT, FragT](val bundle: Bundle[Bu
     )
   }
 
-  def multipleTemplate(projects: Seq[TODOProject]) = {
+  def multipleTemplate(projects: Seq[TodoProject]) = {
     div(cls := "table-responsive")(
       table(cls := "table table-condensed table-striped table-hover")(
         tbody(

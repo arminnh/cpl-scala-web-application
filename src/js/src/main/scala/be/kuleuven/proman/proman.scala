@@ -15,15 +15,15 @@ package object proman {
       date.getUTCHours() + ":" + date.getUTCMinutes() + ":" + date.getUTCSeconds()
   }
 
-  def errorAlert(error: Throwable): Unit = {
+  def printError(error: Throwable): Unit = {
+    showError("Error: see console")
     println("Throwable error: " + error)
-    println(error.getLocalizedMessage)
     println(error.printStackTrace())
   }
 
-  def errorAlert(error: Error): Unit = {
+  def printError(error: Error): Unit = {
+    showError("Error: see console")
     println("Error: " + error)
-    println(error.getLocalizedMessage)
     println(error.printStackTrace())
   }
 
