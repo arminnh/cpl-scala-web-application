@@ -56,17 +56,21 @@ object ProManApp extends App {
     case GET      -> Root                                     => TemporaryRedirect(uri("/projects"))
     case GET      -> Root/"projects"                          => HTML
 
-    case GET      -> Root/"projects"/"json"                   => TodoProjectController.index
-    case r @ POST -> Root/"projects"/"store"                  => TodoProjectController.store(r)
-    case GET      -> Root/"project"/id                        => TodoProjectController.get(id.toLong)
-    case r @ PUT  -> Root/"project"/id                        => TodoProjectController.update(r, id.toLong)
-    case GET      -> Root/"project"/"exists"/name             => TodoProjectController.exists(name)
-    case GET      -> Root/"projects"/"sync"/state             => TodoProjectController.synchronise(state.toLong)
+    case GET      -> Root/"projects"/"json"                   => TodoProjectsController.index
+    case r @ POST -> Root/"projects"/"store"                  => TodoProjectsController.store(r)
+    case GET      -> Root/"project"/id                        => TodoProjectsController.get(id.toLong)
+    case r @ PUT  -> Root/"project"/id                        => TodoProjectsController.update(r, id.toLong)
+    case GET      -> Root/"project"/"exists"/name             => TodoProjectsController.exists(name)
+    case GET      -> Root/"projects"/"sync"/state             => TodoProjectsController.synchronise(state.toLong)
 
-    case GET      -> Root/"todos"/project_id/"json"           => TodoEntryController.index(project_id.toLong)
-    case r @ POST -> Root/"todos"/project_id/"store"          => TodoEntryController.store(r, project_id.toLong)
-    case r @ PUT  -> Root/"todos"/todo_id/"update"            => TodoEntryController.update(r, todo_id.toLong)
-    case GET      -> Root/"todos"/"sync"/state/project_id/v   => TodoEntryController.synchronise(state.toLong, project_id.toLong, v.toInt)
+    case r @ POST -> Root/"lists"/"store"                     => TodoListsController.store(r)
+    case r @ PUT  -> Root/"list"/id                           => TodoListsController.update(r, id.toLong)
+    case GET      -> Root/"lists"/"sync"/state/project_id     => TodoListsController.synchronise(state.toLong, project_id.toLong)
+
+    case GET      -> Root/"todos"/project_id/"json"           => TodoEntriesController.index(project_id.toLong)
+    case r @ POST -> Root/"todos"/"store"                     => TodoEntriesController.store(r)
+    case r @ PUT  -> Root/"todo"/id                           => TodoEntriesController.update(r, id.toLong)
+    case GET      -> Root/"todos"/"sync"/state/project_id/v   => TodoEntriesController.synchronise(state.toLong, project_id.toLong, v.toInt)
 
     // Serve some files with specific extensions
     case r @ GET  -> path~ext if fileExtensions.contains(ext) => static(path.toList.mkString("/") + "." + ext, r)
@@ -83,16 +87,30 @@ object ProManApp extends App {
   // Set up server that binds to localhost:8080/
   val server = BlazeBuilder.bindHttp(8080, "localhost").mountService(service, "/").run
 
-  // Create some dummy projects and todos
-  List("SCALA PROJECT", "GAE", "THESIS").map(TodoProjectRepository.create)
+  // Create some dummy projects, lists, and todos.
+  List("SCALA PROJECT", "GAE", "THESIS").foreach(TodoProjectRepository.create)
+
   List(
-    (1L, "Some stuff", true), (1L, "Some more stuff"), (1L, "Even more stuff"), (1L, "wtf"),
-    (2L, "read assignment", true), (2L, "start"), (2L, "do stuff"), (2L, "finish"),
-    (3L, "Isolation Forest", true), (3L, "Temporal feature extraction"), (3L, "Plot anomalies on PCA")
-  ).map{
-    case (p_id: Long, name: String) => Thread.sleep(15); TodoEntryRepository.create(p_id, name)
-    case (p_id: Long, name: String, is_done: Boolean) => Thread.sleep(15); TodoEntryRepository.create(p_id, name, is_done)
+    (1L, "Base requirements"), (1L, "Extension 1"), (1L, "Extension 2"),
+    (2L, "Exercise 1"), (2L, "Exercise 2"), (2L, "Exercise 3"),
+    (3L, "Thesis text"), (3L, "Isolation forest experiments"), (3L, "Literature to read")
+  ).foreach {
+    case (p_id: Long, name: String) => Thread.sleep(15); TodoListRepository.create(p_id, name)
   }
+
+  List(
+    (1L, "startscene", true), (1L, "projectscene"), (1L, "multi-user1"),
+    (2L, "a"), (2L, "b"), (2L, "c"), (3L, "d"), (3L, "e"), (3L, "f"), (3L, "g", true),
+    (4L, "read assignment", true), (4L, "do experiments"), (5L, "start"), (5L, "work"), (5L, "finish"),
+    (6L, "i"), (6L, "have"), (6L, "no"), (6L, "idea"),
+    (7L, "intro"), (7L, "background"), (7L, "methods"), (7L, "results"),
+    (8L, "More trees", true), (8L, "Higher sampling"), (8L, "better features"), (8L, "Plot anomalies on PCA"),
+    (9L, "improved dtw"), (9L, "tensor decomposition"), (9L, "time series discord"), (9L, "series feature extraction")
+  ).foreach {
+    case (l_id: Long, text: String) => Thread.sleep(15); TodoEntryRepository.create(l_id, text)
+    case (l_id: Long, text: String, is_done: Boolean) => Thread.sleep(15); TodoEntryRepository.create(l_id, text, is_done)
+  }
+
   println("SERVER NOW RUNNING")
 
   // Block on reading a line, makes it easy to stop in your terminal (hit enter).

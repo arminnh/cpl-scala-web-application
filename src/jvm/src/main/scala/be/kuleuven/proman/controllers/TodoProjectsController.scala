@@ -10,7 +10,7 @@ import org.http4s.circe._
 import org.http4s.dsl._
 
 
-object TodoProjectController {
+object TodoProjectsController {
 
   def index: Task[Response] =
     Ok(TodoProjectRepository.all().asJson)

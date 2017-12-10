@@ -1,6 +1,6 @@
 package be.kuleuven.proman.scenes
 
-import be.kuleuven.proman.{printError, formatTimeStamp, hideError, showError, getFormFromEvent}
+import be.kuleuven.proman._
 import be.kuleuven.proman.models._
 
 import scala.util.{Failure, Success}
@@ -126,7 +126,7 @@ object StartScene {
         projectM match {
           case Left(error) => printError(error)
           case Right(project) => {
-            // TODO" check what  this does again
+            // TODO" check what this does again
             dom.window.history.pushState("", dom.document.title, dom.window.location.pathname)
             dom.window.clearInterval(this.synchronisation_interval)
             ProjectScene.setupScene(project)

@@ -1,5 +1,11 @@
+Lists in the ProjectScene are sorted by name
+
+**Synchronisation state improvement:**
+* todo_changes(project_id, list_id, entry_id, timestamp)
+* Views synchronize on timestamp
+* Example query for ProjectScene: select * from todo_entries where id in (select entry_id from todo_changes where timestamp > ?) 
+
 ## TODO
-* multi-user functionality
 * extension: Render as much as you can on the server (e.g. initial project list should be rendered on the server): Move some html bits to a new shared class. e.g. lazy val start_scene_title = div(h1(...)).render.innerHTML
 add these things in the response in the controllers and replace the html bits in the scene js code.
 
@@ -25,5 +31,10 @@ add these things in the response in the controllers and replace the html bits in
 * 03h00: First multi-user functionality for StartScene
 * 01h20: Finished and tweaker multi-user functionality for both scenes. Added documentation in scenes.
 * 02h10: Extensions: Project description (with multi-user) & hide finished todos 
+* 00h15: Fixed event.scrElement incompatability with firefox
+* 00h30: TodoList functionality 
 ---
-Total: **37h10**
+Total: **37h55**
+
+1510->1710
+

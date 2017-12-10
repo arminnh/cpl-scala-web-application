@@ -12,8 +12,8 @@ object TodoEntryRepository {
   private def nextID: Long = { id += 1; id }
   private def nextState: Long = { state += 1; state }
 
-  def create(project_id: Long, name: String, is_done: Boolean=false): TodoEntry = {
-    val todo = new TodoEntry(nextID, project_id, name, is_done)
+  def create(list_id: Long, text: String, is_done: Boolean=false): TodoEntry = {
+    val todo = new TodoEntry(nextID, list_id, text, is_done)
     this.entries +:= todo
     this.state_changes += (nextState -> todo.id)
     todo
@@ -22,8 +22,10 @@ object TodoEntryRepository {
   def all(): Seq[TodoEntry] =
     this.entries
 
-  def allForProject(project_id: Long): Seq[TodoEntry] =
-    this.entries.filter(_.project_id == project_id).sortWith(_.timestamp > _.timestamp)
+  def allForProject(project_id: Long): Seq[TodoEntry] = {
+    val list_ids: Seq[Long] = TodoListRepository.allForProject(project_id).map(_.id)
+    this.entries.filter(e => list_ids.contains(e.list_id)).sortWith(_.timestamp > _.timestamp)
+  }
 
   def find(id: Long): TodoEntry =
     this.entries.find(_.id == id).orNull
@@ -37,9 +39,11 @@ object TodoEntryRepository {
   def getState: Long =
     this.state
 
-  def allUpdatedSinceState(project_id: Long, state: Long): List[TodoEntry] =
+  def allUpdatedSinceState(project_id: Long, state: Long): List[TodoEntry] = {
+    val list_ids: Seq[Long] = TodoListRepository.allForProject(project_id).map(_.id)
     this.state_changes.filterKeys(key => key > state).values
       .toList.distinct.map(id => this.find(id))
-      .filter(todo => todo.project_id == project_id)
+      .filter(todo => list_ids.contains(todo.list_id))
       .sortWith((p1, p2) => p1.id > p2.id)
+  }
 }

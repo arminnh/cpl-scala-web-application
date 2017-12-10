@@ -7,25 +7,23 @@ import cats.syntax.either._
 import scalatags.generic.Bundle
 
 
-class TodoEntry(var id: Long, var project_id: Long, var text: String, var is_done: Boolean, var timestamp: Long) {
-  def this(id: Long, project_id: Long, text: String, is_done: Boolean) = this(id, project_id, text, is_done, System.currentTimeMillis())
-  def this(id: Long, project_id: Long, text: String) = this(id, project_id, text, false)
-  def this(text: String) = this(-999, -999, text)
+class TodoEntry(var id: Long, var list_id: Long, var text: String, var is_done: Boolean, var timestamp: Long) {
+  def this(id: Long, list_id: Long, text: String, is_done: Boolean) = this(id, list_id, text, is_done, System.currentTimeMillis())
+  def this(list_id: Long, text: String) = this(-999, list_id, text, false)
 
-  override def toString: String = {
-    s"Todo on timestamp: ${this.timestamp}, is done: ${this.is_done}, with text: ${this.text}\n"
-  }
+  override def toString: String =
+    s"TodoEntry ${this.id}, timestamp: ${this.timestamp}, is done: ${this.is_done}, with text: ${this.text}\n"
 }
 
 
 object TodoEntry {
   implicit val encodeTodoEntry: Encoder[TodoEntry] = new Encoder[TodoEntry] {
     final def apply(t: TodoEntry): Json = Json.obj(
-      ("id",         Json.fromLong(t.id)),
-      ("project_id", Json.fromLong(t.project_id)),
-      ("text",       Json.fromString(t.text)),
-      ("timestamp",  Json.fromLong(t.timestamp)),
-      ("is_done",    Json.fromBoolean(t.is_done))
+      ("id",        Json.fromLong(t.id)),
+      ("list_id",   Json.fromLong(t.list_id)),
+      ("text",      Json.fromString(t.text)),
+      ("timestamp", Json.fromLong(t.timestamp)),
+      ("is_done",   Json.fromBoolean(t.is_done))
     )
   }
 
@@ -33,16 +31,14 @@ object TodoEntry {
     final def apply(cursor: HCursor): Decoder.Result[TodoEntry] =
       for {
         id         <- cursor.downField("id").as[Long]
-        project_id <- cursor.downField("project_id").as[Long]
+        list_id    <- cursor.downField("list_id").as[Long]
         text       <- cursor.downField("text").as[String]
         timestamp  <- cursor.downField("timestamp").as[Long]
         is_done    <- cursor.downField("is_done").as[Boolean]
       } yield {
-        new TodoEntry(id, project_id, text, is_done, timestamp)
+        new TodoEntry(id, list_id, text, is_done, timestamp)
       }
   }
-
-  //def formatTimestamp(ts: Long): String = new SimpleDateFormat("yyy-MM-dd HH:mm:ss").format(new Date(ts))
 }
 
 

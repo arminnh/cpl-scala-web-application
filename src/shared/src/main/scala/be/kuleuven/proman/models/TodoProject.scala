@@ -10,7 +10,7 @@ class TodoProject(var id: Long, var name: String, var description: String, var v
   def this(id: Long, name: String) = this(id, name, "Description of project " + name, 1)
   def this(name: String) = this(-999, name)
 
-  override def toString: String = s"Todo project: ${this.name}, id ${this.id}, version ${this.version}\n"
+  override def toString: String = s"TodoProject ${this.id}, name: ${this.name}, version: ${this.version}\n"
 }
 
 
