@@ -32,7 +32,7 @@ object TodoEntriesController {
   def synchronise(state: Long, project_id: Long, version: Int): Task[Response] = Ok(
     s"""{
       "state": ${TodoEntryRepository.getState},
-      "todos": ${TodoEntryRepository.allUpdatedSinceState(project_id, state).asJson},
+      "todos": ${TodoEntryRepository.allUpdatedSinceState(state, project_id).asJson},
       "project": ${
         val p = TodoProjectRepository.getLaterVersionOrNull(project_id, version)
         if (p != null) p.asJson else null

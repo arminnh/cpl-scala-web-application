@@ -54,17 +54,19 @@ class TodoEntryTemplate[Builder, Output <: FragT, FragT](val bundle: Bundle[Buil
 
       td(attr("data-timestamp") := todo.timestamp, cls := "todo-timestamp", width := 160, verticalAlign := "middle"),
 
-      td(width := 60)(
-        button(cls := "btn btn-sm btn-default todo-edit", title:= "edit")(span(cls := "glyphicon glyphicon-pencil"))
+      td(width := 45)(
+        button(cls := "btn btn-sm btn-default todo-edit", title:= "Edit this entry")(
+          span(cls := "glyphicon glyphicon-pencil")
+        )
       ),
 
-      td(width := 60)(
+      td(width := 45)(
         if (todo.is_done) {
-          button(cls := "btn btn-sm btn-default todo-finished", title :="move back to pending todos")(
+          button(cls := "btn btn-sm btn-default todo-finished", title :="Move back to pending todos")(
             span(cls := "glyphicon glyphicon-remove", color := "darkred")
           )
         } else {
-          button(cls := "btn btn-sm btn-default todo-pending", title := "move to finished todos")(
+          button(cls := "btn btn-sm btn-default todo-pending", title := "Move to finished todos")(
             span(cls := "glyphicon glyphicon-ok", color := "green")
           )
         }

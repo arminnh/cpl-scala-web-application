@@ -3505,10 +3505,12 @@ tbody.collapse.in {
   height: 0;
   margin-left: 2px;
   vertical-align: middle;
-  border-top: 4px dashed;
-  border-top: 4px solid \9;
-  border-right: 4px solid transparent;
-  border-left: 4px solid transparent;
+  border-top: 10px dashed;
+  border-top: 10px solid \9;
+  border-right: 7px solid transparent;
+  border-left: 7px solid transparent;
+  margin-top: 1px;
+  margin-bottom: 1px;
 }
 .dropup,
 .dropdown {
@@ -6758,5 +6760,6 @@ button.close {
 .caret.caret-up {
   border-top-width: 0;
   border-bottom: 4px solid #000;
+  border-bottom-width: 10px;
 }
 /*# sourceMappingURL=bootstrap.css.map */

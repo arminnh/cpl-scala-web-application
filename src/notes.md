@@ -32,9 +32,8 @@ add these things in the response in the controllers and replace the html bits in
 * 01h20: Finished and tweaker multi-user functionality for both scenes. Added documentation in scenes.
 * 02h10: Extensions: Project description (with multi-user) & hide finished todos 
 * 00h15: Fixed event.scrElement incompatability with firefox
-* 00h30: TodoList functionality 
+* 04h00: WIP: Multiple lists per project extension 
+* 02h20: New lists can be created. Lists can be updated (+ multi-user). Lists can be hidden. Lists are sorted alphabetically. Added list_id select in create_entry form. Updated ProjectScene input forms in view. 
 ---
-Total: **37h55**
-
-1510->1710
+Total: **43h45**
 

@@ -39,7 +39,7 @@ object TodoEntryRepository {
   def getState: Long =
     this.state
 
-  def allUpdatedSinceState(project_id: Long, state: Long): List[TodoEntry] = {
+  def allUpdatedSinceState(state: Long, project_id: Long): List[TodoEntry] = {
     val list_ids: Seq[Long] = TodoListRepository.allForProject(project_id).map(_.id)
     this.state_changes.filterKeys(key => key > state).values
       .toList.distinct.map(id => this.find(id))

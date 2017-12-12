@@ -38,9 +38,8 @@ object TodoListRepository {
   def getState: Long =
     this.state
 
-  def allUpdatedSinceState(project_id: Long, state: Long): List[TodoList] =
+  def allUpdatedSinceState(state: Long, project_id: Long): List[TodoList] =
     this.state_changes.filterKeys(key => key > state).values
       .toList.distinct.map(id => this.find(id))
-      .filter(todo => todo.project_id == project_id)
-      .sortWith((p1, p2) => p1.id > p2.id)
+      .filter(list => list.project_id == project_id)
 }

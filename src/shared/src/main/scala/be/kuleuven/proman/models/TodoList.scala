@@ -43,14 +43,16 @@ class TodoListTemplate[Builder, Output <: FragT, FragT](val bundle: Bundle[Build
       h3(cls := "clearfix")(
         div(cls := "pull-left")(
           span(cls := "todo-list-name", attr("data-id") := list.id)(list.name),
-          button(cls := "btn btn-sm btn-default todo-list-toggle")(span(cls := "caret caret-up"))
+            input(tpe := "text", name := "name", cls := "form-control", autocomplete := "off",
+                  value := list.name, placeholder := "Name", display := "none")
         ),
-        div(cls := "pull-left form-group", display := "none")(
-          input(tpe := "text", name := "name", cls := "form-control", autocomplete := "off",
-                value := list.name, placeholder := "Name")
-        ),
-        div(cls := "pull-right")(
-          button(cls := "btn btn-sm btn-default todo-list-edit")(span(cls := "glyphicon glyphicon-pencil"))
+        div(cls := "pull-right list-button-container")(
+          button(cls := "btn btn-sm btn-default todo-list-edit", title := "Edit list name", marginRight := 15)(
+            span(cls := "glyphicon glyphicon-pencil")
+          ),
+          button(cls := "btn btn-sm btn-default todo-list-toggle", title := "Hide this list's table")(
+            span(cls := "caret caret-up")
+          )
         )
       ),
       div(cls := "table-responsive")(
