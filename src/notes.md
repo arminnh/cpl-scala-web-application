@@ -1,4 +1,5 @@
-Lists in the ProjectScene are sorted by name
+All lists can be hidden.  
+Lists in the ProjectScene are sorted by name.
 
 **Synchronisation state improvement:**
 * todo_changes(project_id, list_id, entry_id, timestamp)
@@ -33,7 +34,13 @@ add these things in the response in the controllers and replace the html bits in
 * 02h10: Extensions: Project description (with multi-user) & hide finished todos 
 * 00h15: Fixed event.scrElement incompatability with firefox
 * 04h00: WIP: Multiple lists per project extension 
-* 02h20: New lists can be created. Lists can be updated (+ multi-user). Lists can be hidden. Lists are sorted alphabetically. Added list_id select in create_entry form. Updated ProjectScene input forms in view. 
+* 02h30: TodoList functionality updates:
+    * New lists can be created.
+    * Lists can be updated (+ multi-user).
+    * Lists can be hidden.
+    * Lists are sorted alphabetically.
+    * Added list_id select in create_entry form.
+    * Updated ProjectScene input forms in view. 
 ---
-Total: **43h45**
+Total: **45h15**
 
