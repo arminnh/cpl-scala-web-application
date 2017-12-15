@@ -50,23 +50,26 @@ class TodoEntryTemplate[Builder, Output <: FragT, FragT](val bundle: Bundle[Buil
 
       td(todo.id, width := 30, verticalAlign := "middle"),
 
-      td(cls := "todo-text")(todo.text, verticalAlign := "middle"),
+      td(cls := "todo-text")(
+        span(todo.text, verticalAlign := "middle"),
+        input(tpe := "text", name := "text", cls := "form-control", placeholder := "Text", display := "none")
+      ),
 
-      td(attr("data-timestamp") := todo.timestamp, cls := "todo-timestamp", width := 160, verticalAlign := "middle"),
+      td(cls := "todo-timestamp", attr("data-timestamp") := todo.timestamp, width := 160, verticalAlign := "middle"),
 
       td(width := 45)(
-        button(cls := "btn btn-sm btn-default todo-edit", title:= "Edit this entry")(
+        button(cls := "todo-edit btn btn-sm btn-default", title:= "Edit this entry")(
           span(cls := "glyphicon glyphicon-pencil")
         )
       ),
 
       td(width := 45)(
         if (todo.is_done) {
-          button(cls := "btn btn-sm btn-default todo-finished", title :="Move back to pending todos")(
+          button(cls := "todo-finished btn btn-sm btn-default", title :="Move back to pending todos")(
             span(cls := "glyphicon glyphicon-remove", color := "darkred")
           )
         } else {
-          button(cls := "btn btn-sm btn-default todo-pending", title := "Move to finished todos")(
+          button(cls := "todo-pending btn btn-sm btn-default", title := "Move to finished todos")(
             span(cls := "glyphicon glyphicon-ok", color := "green")
           )
         }

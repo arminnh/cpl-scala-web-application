@@ -45,9 +45,6 @@ package object proman {
     * @param e: The event for the form submit.
     */
   def getFormFromEvent(e: Event): Form = {
-    println("event:" + e)
-    println("event.srcElement" + e.srcElement)
-    println("event.target" + e.target)
     if (e.target != null) {
       e.target.asInstanceOf[Form]
     } else {

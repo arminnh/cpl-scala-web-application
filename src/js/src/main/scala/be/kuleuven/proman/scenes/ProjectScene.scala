@@ -60,7 +60,7 @@ object ProjectScene {
           )
         ),
         div(cls := "col-sm-6")(
-          input(tpe := "text", id := "filter", name := "filter", placeholder := "Search by todo text", cls := "form-control", autocomplete := "off")
+          input(tpe := "text", id := "todo-filter", placeholder := "Search by todo text", cls := "form-control")
         )
       ),
       div(id := "div-create-list", display := "none")(
@@ -76,11 +76,11 @@ object ProjectScene {
         h3("Create a new entry"),
         form(id := "form-create-todo", name := "form-create-todo", action := s"/todos/store", method := "post", cls := "form-inline")(
           div(cls := "form-group")(
-            input(tpe := "text", name := "name", placeholder := "Todo text", cls := "form-control", autocomplete := "off", marginRight := 15)
+            input(tpe := "text", name := "text", placeholder := "Todo text", cls := "form-control", autocomplete := "off", marginRight := 15)
           ),
           div(cls := "form-group")(
             select(name := "list_id", cls := "form-control", marginRight := 15, width := 225)(
-              option(value := "", disabled)("Select the list for the todo")
+              option(value := "0", disabled, selected)("Select a list for the todo")
             )
           ),
           button(tpe := "submit", cls := "btn btn-primary")("Create")
@@ -144,6 +144,11 @@ object ProjectScene {
       this.submitNewTodo(getFormFromEvent(e))
     })
 
+    val input_filter = dom.document.getElementById("todo-filter").asInstanceOf[Input]
+    input_filter.onkeyup = Any.fromFunction1((e: Event) => {
+      this.filterTodoEntries(input_filter.value)
+    })
+
     dom.document.getElementById("back-to-start").asInstanceOf[Button].onclick = Any.fromFunction1(_ => {
       dom.window.clearInterval(this.synchronisation_interval)
       StartScene.setupScene()
@@ -190,7 +195,7 @@ object ProjectScene {
   }
 
   /**
-    * Creates a new list/table for TodoEntries.
+    * Creates a new table that represents a TodoList.
     * @param list: The new TodoList.
     */
   def createListTable(list: TodoList): Unit = {
@@ -200,7 +205,6 @@ object ProjectScene {
     for (i <- 0 until spans.length) {
       names :+= spans.item(i).innerHTML
     }
-
     val i = names.sortWith((a, b) => a.toLowerCase() < b.toLowerCase()).indexOf(list.name)
 
     val list_container = dom.document.getElementById("todo-lists").asInstanceOf[Div]
@@ -213,31 +217,45 @@ object ProjectScene {
     * @param div: The container for the TodoList
     */
   def setupTodoListTable(div: Div): Unit = {
+    val btn_toggle_list = div.querySelector("button.todo-list-toggle").asInstanceOf[Button]
+    val btn_toggle_input = div.querySelector("button.todo-list-edit").asInstanceOf[Button]
     val span_name = div.querySelector("span.todo-list-name").asInstanceOf[Span]
-    val btn_toggle = div.querySelector("button.todo-list-toggle").asInstanceOf[Button]
-    val btn_edit = div.querySelector("button.todo-list-edit").asInstanceOf[Button]
     val input_name = div.querySelector("input[name='name']").asInstanceOf[Input]
 
-    btn_toggle.onclick = Any.fromFunction1(_ => {
+    btn_toggle_list.onclick = Any.fromFunction1(_ => {
       val table = div.querySelector("table").asInstanceOf[Table]
-      table.style.display = if (table.style.display == "none") "block" else "none"
-      btn_toggle.firstChild.asInstanceOf[Span].classList.toggle("caret-up")
+      table.style.display = if (table.style.display == "none") "table" else "none"
+      btn_toggle_list.firstChild.asInstanceOf[Span].classList.toggle("caret-up")
     })
 
-    if (input_name != null) {
-      input_name.onkeyup = Any.fromFunction1((e: KeyboardEvent) => {
-        if (e.keyCode == 13) {
+    if (btn_toggle_input != null) {
+      btn_toggle_input.onclick = Any.fromFunction1(_ => {
+        if (span_name.style.display != "none") {
+          span_name.style.display = "none"
+          input_name.value = span_name.innerHTML
+          input_name.style.display = "block"
+          input_name.focus()
+          input_name.setSelectionRange(input_name.value.length, input_name.value.length)
+        } else {
           input_name.style.display = "none"
           span_name.innerHTML = input_name.value
           span_name.style.display = "block"
         }
+      })
+    }
+
+    if (input_name != null) {
+      input_name.onkeyup = Any.fromFunction1((e: KeyboardEvent) => {
+        if (e.keyCode == 13) {
+          btn_toggle_input.click()
+        }
 
         decode[TodoList](div.getAttribute("data-json")) match {
           case Left(error) => printError(error)
-          case Right(list) =>
-            list.name = input_name.value
+          case Right(todo_list) =>
+            todo_list.name = input_name.value
 
-            Ajax.put("/list/" + list.id, list.asJson.noSpaces).onComplete {
+            Ajax.put("/list/" + todo_list.id, todo_list.asJson.noSpaces).onComplete {
               case Failure(error) => printError(error)
               case Success(xhr) =>
                 decode[TodoList](xhr.responseText) match {
@@ -245,20 +263,6 @@ object ProjectScene {
                   case Right(updated) => div.setAttribute("data-json", updated.asJson.noSpaces)
                 }
             }
-        }
-      })
-    }
-
-    if (btn_edit != null) {
-      btn_edit.onclick = Any.fromFunction1(_ => {
-        if (span_name.style.display != "none") {
-          span_name.style.display = "none"
-          input_name.style.display = "block"
-          input_name.focus()
-        } else {
-          input_name.style.display = "none"
-          span_name.innerHTML = input_name.value
-          span_name.style.display = "block"
         }
       })
     }
@@ -277,8 +281,7 @@ object ProjectScene {
     breakable {
       while (i < tbody.childElementCount) {
         val timestamp = tbody.childNodes.item(i).asInstanceOf[TableRow]
-          .getElementsByClassName("todo-timestamp").item(0).asInstanceOf[TableCell]
-          .getAttribute("data-timestamp").toLong
+          .querySelector(".todo-timestamp").getAttribute("data-timestamp").toLong
 
         if (new_todo.timestamp < timestamp) {
           i += 1
@@ -298,70 +301,60 @@ object ProjectScene {
   /**
     * Sets up event handlers for a TodoEntry's TableRow.
     * @param tr: The TableRow to set the handlers on.
-    *          TODO: refactor with QuerySelector
     */
   def setupTodoTableRow(tr: TableRow): Unit = {
-    val timestamp_tds = tr.getElementsByClassName("todo-timestamp").asInstanceOf[NodeListOf[TableDataCell]]
-    for (i <- 0 until timestamp_tds.length) {
-      val td = timestamp_tds.item(i)
-      td.innerHTML = formatTimeStamp(td.getAttribute("data-timestamp").toLong)
+    val td_timestamp = tr.querySelector(".todo-timestamp").asInstanceOf[TableDataCell]
+    val btn_finished = tr.querySelector(".todo-finished").asInstanceOf[Button]
+    val btn_pending = tr.querySelector(".todo-pending").asInstanceOf[Button]
+    val btn_toggle_input = tr.querySelector(".todo-edit").asInstanceOf[Button]
+    val input_text = tr.querySelector(".todo-text input").asInstanceOf[Input]
+    val span_text = tr.querySelector(".todo-text span").asInstanceOf[Span]
+
+    td_timestamp.innerHTML = formatTimeStamp(td_timestamp.getAttribute("data-timestamp").toLong)
+
+    if (btn_finished != null) {
+      btn_finished.onclick = Any.fromFunction1(_ => { updateTODOIsDoneStatus(tr, is_done=false) })
     }
 
-    val finished_btns = tr.getElementsByClassName("todo-finished").asInstanceOf[NodeListOf[Button]]
-    for (i <- 0 until finished_btns.length) {
-      val btn = finished_btns.item(i)
-      btn.onclick = Any.fromFunction1(_ => { updateTODOIsDoneStatus(tr, is_done=false) })
+    if (btn_pending != null) {
+      btn_pending.onclick = Any.fromFunction1(_ => { updateTODOIsDoneStatus(tr, is_done=true) })
     }
 
-    val pending_btns = tr.getElementsByClassName("todo-pending").asInstanceOf[NodeListOf[Button]]
-    for (i <- 0 until pending_btns.length) {
-      val btn = pending_btns.item(i)
-      btn.onclick = Any.fromFunction1(_ => { updateTODOIsDoneStatus(tr, is_done=true) })
-    }
+    btn_toggle_input.onclick = Any.fromFunction1(_ => {
+      if (span_text.style.display != "none") {
+        span_text.style.display = "none"
+        input_text.value = span_text.innerHTML
+        input_text.style.display = "block"
+        input_text.focus()
+        input_text.setSelectionRange(input_text.value.length, input_text.value.length)
+      } else {
+        span_text.style.display = "block"
+        span_text.innerHTML = input_text.value
+        input_text.style.display = "none"
+      }
+    })
 
-    val edit_btns = tr.getElementsByClassName("todo-edit").asInstanceOf[NodeListOf[Button]]
-    for (i <- 0 until edit_btns.length) {
-      val btn = edit_btns.item(i)
-      btn.onclick = Any.fromFunction1(_ => {
-        val td_text = tr.getElementsByClassName("todo-text").item(0).asInstanceOf[TableDataCell]
+    // Update the entry's text. every keystroke is an update
+    input_text.onkeyup = Any.fromFunction1((e: KeyboardEvent) => {
+      if (e.keyCode == 13) {
+        btn_toggle_input.click()
+      }
 
-        if (td_text.hasChildNodes() && td_text.firstChild.nodeName != "#text") {
-          // replace input box by it's value
-          td_text.innerHTML = td_text.firstChild.asInstanceOf[Input].value
-        } else {
-          // replace text by a new input box
-          val input_node = input(tpe := "text", name := "text", placeholder := "Message",  cls := "form-control",
-                                 value := td_text.innerHTML, height := 24).render
-          td_text.innerHTML = ""
-          td_text.appendChild(input_node)
+      decode[TodoEntry](tr.getAttribute("data-json")) match {
+        case Left(error) => printError(error)
+        case Right(todo) =>
+          todo.text = input_text.value
 
-          // Update the entry's text. every keystroke is an update
-          input_node.onkeyup = Any.fromFunction1((e: KeyboardEvent) => {
-            if (e.keyCode == 13) {
-              td_text.innerHTML = input_node.value
-            }
-
-            decode[TodoEntry](tr.getAttribute("data-json")) match {
-              case Left(error) => printError(error)
-              case Right(todo) =>
-                todo.text = input_node.value
-
-                Ajax.put("/todo/"+todo.id, todo.asJson.noSpaces).onComplete {
-                  case Failure(error) => printError(error)
-                  case Success(xhr) =>
-                    decode[TodoEntry](xhr.responseText) match {
-                      case Left(error) => printError(error)
-                      case Right(updated) => tr.setAttribute("data-json", updated.asJson.noSpaces)
-                    }
-                }
-            }
-          })
-
-          input_node.focus()
-          input_node.setSelectionRange(input_node.value.length, input_node.value.length)
-        }
-      })
-    }
+          Ajax.put("/todo/"+todo.id, todo.asJson.noSpaces).onComplete {
+            case Failure(error) => printError(error)
+            case Success(xhr) =>
+              decode[TodoEntry](xhr.responseText) match {
+                case Left(error) => printError(error)
+                case Right(updated) => tr.setAttribute("data-json", updated.asJson.noSpaces)
+              }
+          }
+      }
+    })
   }
 
   /**
@@ -417,24 +410,26 @@ object ProjectScene {
   def submitNewTodo(form: Form): Unit = {
     hideError()
 
-    val name = form.elements.namedItem("name").asInstanceOf[Input].value
-    val list_select = form.elements.namedItem("list_id").asInstanceOf[Select]
-    val list_id = list_select.options(list_select.selectedIndex).value.toLong
-
-    if (name.length() == 0) {
+    val input_text = form.elements.namedItem("text").asInstanceOf[Input]
+    if (input_text.value.length() == 0) {
       showError("Fill in a message first!")
     } else {
-      println("?????????????/")
-      //Ajax.post(form.action, name.asJson.noSpaces).onComplete {
-//      Ajax.post(form.action, new TodoEntry(1L, "pls").asJson.noSpaces).onComplete {
-//        case Failure(error) => printError(error)
-//        case Success(xhr) =>
-//          form.reset()
-//          decode[TodoEntry](xhr.responseText) match {
-//            case Left(error) => printError(error)
-//            case Right(new_todo) => this.createTodoInTable(new_todo)
-//          }
-//      }
+      val list_select: Select = form.elements.namedItem("list_id").asInstanceOf[Select]
+      val list_id: Long = list_select.options(list_select.selectedIndex).value.toLong
+
+      if (list_id == 0) {
+        showError("Choose a list for the todo first!")
+      } else {
+        Ajax.post(form.action, new TodoEntry(list_id, input_text.value).asJson.noSpaces).onComplete {
+          case Failure(error) => printError(error)
+          case Success(xhr) =>
+            input_text.value = ""
+            decode[TodoEntry](xhr.responseText) match {
+              case Left(error) => printError(error)
+              case Right(new_todo) => this.createTodoInTable(new_todo)
+            }
+        }
+      }
     }
   }
 
@@ -456,15 +451,15 @@ object ProjectScene {
 
             Ajax.get(s"todos/sync/${this.state_entries}/${this.project.id}/${this.project.version}").onComplete {
               case Failure(error) => printError(error)
-              case Success(xhr) =>
-                println(s"synchronising for todo state: ${this.state_entries}, response: ${xhr.responseText}")
-                parse(xhr.responseText) match {
+              case Success(xhr2) =>
+                println(s"synchronising for todo state: ${this.state_entries}, response: ${xhr2.responseText}")
+                parse(xhr2.responseText) match {
                   case Left(error) => printError(error)
-                  case Right(json) =>
-                    this.updateTodos(json.hcursor.downField("todos").as[Seq[TodoEntry]].getOrElse(List()))
-                    this.state_entries = json.hcursor.downField("state").as[Long].getOrElse(this.state_entries)
+                  case Right(json2) =>
+                    this.updateTodos(json2.hcursor.downField("todos").as[Seq[TodoEntry]].getOrElse(List()))
+                    this.state_entries = json2.hcursor.downField("state").as[Long].getOrElse(this.state_entries)
 
-                    val project: TodoProject = json.hcursor.downField("project").as[TodoProject].getOrElse(null)
+                    val project: TodoProject = json2.hcursor.downField("project").as[TodoProject].getOrElse(null)
                     if (project != null) {
                       this.project = project
                       dom.document.getElementById("project-description").innerHTML = this.project.description
@@ -500,6 +495,7 @@ object ProjectScene {
       if (option_list != null) {
         option_list.innerHTML = list.name
       } else {
+        // TODO: append at correct index ?
         dom.document.querySelector("select[name='list_id']").appendChild(
           option(value := list.id)(list.name).render
         )
@@ -520,7 +516,8 @@ object ProjectScene {
       if (row != null) {
         // Only replace the row if it is not being edited. No requirement is given for the case where multiple people
         // are editing an entry. In this case, the entry will get the text of the input box that was updated the latest.
-        if (row.getElementsByTagName("input").length == 0) {
+        val input_text = row.querySelector("input[name='text']").asInstanceOf[Input]
+        if (input_text.style.display == "none") {
           row.parentElement.removeChild(row)
           this.createTodoInTable(todo)
         }
@@ -530,4 +527,18 @@ object ProjectScene {
     })
   }
 
+  /**
+    * Filters out the TodoEntries in the view based on a given text. If the given text does not occur in a TodoEntry,
+    * the style.display of the TodoEntry is set to "none".
+    * @param filter_text: The given text to filter the entries on.
+    */
+  def filterTodoEntries(filter_text: String): Unit = {
+    println("Filter by: " + filter_text)
+    val todo_rows = dom.document.querySelectorAll("tr[data-id]").asInstanceOf[NodeListOf[TableRow]]
+    for (i <- 0 until todo_rows.length) {
+      val tr = todo_rows.item(i)
+      val todo_text: String = tr.querySelector(".todo-text span").asInstanceOf[Span].innerHTML
+      tr.style.display = if (todo_text.toLowerCase().contains(filter_text.toLowerCase())) "table-row" else "none"
+    }
+  }
 }
