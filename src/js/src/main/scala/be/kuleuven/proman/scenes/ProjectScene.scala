@@ -23,8 +23,8 @@ object ProjectScene {
   var state_lists: Long = -999
   var project: TodoProject = _
   var synchronisation_interval: Int = -999
-  lazy val todo_entry_ui = new TodoEntryTemplate(scalatags.JsDom)
-  lazy val todo_list_ui = new TodoListTemplate(scalatags.JsDom)
+  val todo_entry_ui = new TodoEntryTemplate(scalatags.JsDom)
+  val todo_list_ui = new TodoListTemplate(scalatags.JsDom)
 
   def setupHTML(): Unit = {
     hideError()
@@ -195,21 +195,31 @@ object ProjectScene {
   }
 
   /**
-    * Creates a new table that represents a TodoList.
-    * @param list: The new TodoList.
+    * Returns the index in the view for a new TodoList with a given name. Lists in the view are sorted alphabetically
+    * by name.
+    * @param name: The name of the new TodoList
     */
-  def createListTable(list: TodoList): Unit = {
-    // Find where to place the list.
-    var names: Seq[String] = Seq(list.name)
+  def getNewTodoListIndex(name: String): Int = {
+    var names: Seq[String] = Seq(name)
     val spans = dom.document.querySelectorAll("span.todo-list-name").asInstanceOf[NodeListOf[Span]]
     for (i <- 0 until spans.length) {
       names :+= spans.item(i).innerHTML
     }
-    val i = names.sortWith((a, b) => a.toLowerCase() < b.toLowerCase()).indexOf(list.name)
+    names.sortWith((a, b) => a.toLowerCase() < b.toLowerCase()).indexOf(name)
+  }
 
+  /**
+    * Creates a new table that represents a TodoList.
+    * @param list: The new TodoList.
+    */
+  def createTodoListTable(list: TodoList): Unit = {
     val list_container = dom.document.getElementById("todo-lists").asInstanceOf[Div]
-    val l = list_container.insertBefore(todo_list_ui.singleTemplate(list).render, list_container.childNodes.item(i))
-    this.setupTodoListTable(l.asInstanceOf[Div])
+    val new_list = list_container.insertBefore(
+      this.todo_list_ui.singleTemplate(list).render,
+      list_container.childNodes.item(this.getNewTodoListIndex(list.name))
+    ).asInstanceOf[Div]
+
+    this.setupTodoListTable(new_list)
   }
 
   /**
@@ -397,7 +407,7 @@ object ProjectScene {
           form.parentElement.style.display = "none"
           decode[TodoList](xhr.responseText) match {
             case Left(error) => printError(error)
-            case Right(new_list) => this.createListTable(new_list)
+            case Right(new_list) => this.createTodoListTable(new_list)
           }
       }
     }
@@ -488,17 +498,19 @@ object ProjectScene {
           span.innerHTML = list.name
         }
       } else {
-        this.createListTable(list)
+        this.createTodoListTable(list)
       }
 
-      val option_list = dom.document.querySelector(s"option[value='${list.id}']")
+      val option_list = dom.document.querySelector(s"option[value='${list.id}']").asInstanceOf[Option]
       if (option_list != null) {
         option_list.innerHTML = list.name
       } else {
-        // TODO: append at correct index ?
-        dom.document.querySelector("select[name='list_id']").appendChild(
-          option(value := list.id)(list.name).render
-        )
+        val select_list = dom.document.querySelector("select[name='list_id']").asInstanceOf[Select]
+
+        select_list.insertBefore(
+          option(value := list.id)(list.name).render,
+          select_list.childNodes.item(this.getNewTodoListIndex(list.name) + 1)
+        ).asInstanceOf[Div]
       }
     })
   }
@@ -528,12 +540,11 @@ object ProjectScene {
   }
 
   /**
-    * Filters out the TodoEntries in the view based on a given text. If the given text does not occur in a TodoEntry,
-    * the style.display of the TodoEntry is set to "none".
+    * Filters out the TodoEntries in the view based on a given string. All TodoEntries that do not contain the given
+    * string in their text are hidden in the view.
     * @param filter_text: The given text to filter the entries on.
     */
   def filterTodoEntries(filter_text: String): Unit = {
-    println("Filter by: " + filter_text)
     val todo_rows = dom.document.querySelectorAll("tr[data-id]").asInstanceOf[NodeListOf[TableRow]]
     for (i <- 0 until todo_rows.length) {
       val tr = todo_rows.item(i)

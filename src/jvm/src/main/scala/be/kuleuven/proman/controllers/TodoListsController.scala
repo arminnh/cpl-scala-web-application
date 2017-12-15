@@ -25,7 +25,6 @@ object TodoListsController {
       list <- request.as(jsonOf[TodoList])
       response <- Ok(TodoListRepository.update(id, list).asJson)
     } yield {
-      println("Updated TodoList: " + list)
       response
     }
   }

@@ -41,6 +41,7 @@ add these things in the response in the controllers and replace the html bits in
     * Lists are sorted alphabetically.
     * Added list_id select in create_entry form.
     * Updated ProjectScene input forms in view. 
+* 01h30: Multiple lists extension + search extension finished
 ---
-Total: **45h15**
+Total: **46h45**
 

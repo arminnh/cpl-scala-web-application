@@ -99,8 +99,8 @@ object ProManApp extends App {
   }
 
   List(
-    (1L, "startscene", true), (1L, "projectscene"), (1L, "multi-user1"),
-    (2L, "a"), (2L, "b"), (2L, "c"), (3L, "d"), (3L, "e"), (3L, "f"), (3L, "g", true),
+    (1L, "startscene", true), (1L, "projectscene", true), (1L, "multi-user1", true), (1L, "everything", true),
+    (2L, "a", true), (2L, "b", true), (2L, "c", true), (3L, "d", true), (3L, "e", true), (3L, "f", true), (3L, "g", true),
     (4L, "read assignment", true), (4L, "do experiments"), (5L, "start"), (5L, "work"), (5L, "finish"),
     (6L, "i"), (6L, "have"), (6L, "no"), (6L, "idea"),
     (7L, "intro"), (7L, "background"), (7L, "methods"), (7L, "results"),

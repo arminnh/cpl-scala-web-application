@@ -24,7 +24,6 @@ object TodoEntriesController {
       todo <- request.as(jsonOf[TodoEntry])
       response <- Ok(TodoEntryRepository.update(todo_id, todo).asJson)
     } yield {
-      println("Updated TodoEntry: " + todo)
       response
     }
   }

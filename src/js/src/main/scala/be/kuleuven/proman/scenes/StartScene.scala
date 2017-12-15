@@ -19,7 +19,7 @@ import scala.scalajs.js.Any
 object StartScene {
   var state: Long = -999
   var synchronisation_interval: Int = -999
-  lazy val todo_project_ui = new TodoProjectTemplate(scalatags.JsDom)
+  val todo_project_ui = new TodoProjectTemplate(scalatags.JsDom)
 
   def setupHTML(): Unit = {
     hideError()
@@ -182,12 +182,11 @@ object StartScene {
   }
 
   /**
-    * Filters out the TodoProjects in the view based on a given text. If the given text does not occur in a project's
-    * name, the style.display of the TodoProject is set to "none".
+    * Filters out the TodoProjects in the view based on a given string. All TodoProjects that do not contain the given
+    * string in their title are hidden in the view.
     * @param filter_text: The given text to filter the projecst on.
     */
   def filterTodoProjects(filter_text: String): Unit = {
-    println("Filter by: " + filter_text)
     val btns_project = dom.document.querySelectorAll("button[data-id]").asInstanceOf[NodeListOf[TableRow]]
     for (i <- 0 until btns_project.length) {
       val btn = btns_project.item(i)
