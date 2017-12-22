@@ -28,11 +28,4 @@ object TodoListsController {
       response
     }
   }
-
-  def synchronise(state: Long, project_id: Long): Task[Response] = Ok(
-    s"""{
-      "state": ${TodoListRepository.getState},
-      "lists": ${TodoListRepository.allUpdatedSinceState(state, project_id).asJson}
-    }"""
-  )
 }

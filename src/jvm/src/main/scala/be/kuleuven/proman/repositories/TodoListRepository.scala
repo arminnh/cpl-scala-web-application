@@ -7,7 +7,11 @@ object TodoListRepository {
   private var id: Long = 0
   private var lists: Seq[TodoList] = Seq()
 
+  // Keep state as just a number that increments with every change to state.
+  // Will be good enough for the given requirements.
   private var state: Long = 0
+  // Map to keep track which project changed at which state. A smarter policy would remove all entries which
+  // are not relevant anymore (this is when all current clients are up to date with a certain common state).
   private var state_changes: Map[Long, Long] = Map()
 
   private def nextID: Long = { id += 1; id }
@@ -19,9 +23,6 @@ object TodoListRepository {
     this.state_changes += (this.nextState -> todo.id)
     todo
   }
-
-  def all(): Seq[TodoList] =
-    this.lists
 
   def allForProject(project_id: Long): Seq[TodoList] =
     this.lists.filter(_.project_id == project_id).sortWith(_.id > _.id)

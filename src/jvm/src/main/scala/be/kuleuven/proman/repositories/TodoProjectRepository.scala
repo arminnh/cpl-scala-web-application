@@ -2,6 +2,7 @@ package be.kuleuven.proman.repositories
 
 import be.kuleuven.proman.models.TodoProject
 
+
 object TodoProjectRepository {
   private var id: Long = 0
   private var projects: Seq[TodoProject] = Seq()
@@ -33,7 +34,6 @@ object TodoProjectRepository {
     this.projects.find(_.id == id).orNull
 
   def update(id: Long, project: TodoProject): TodoProject = {
-    project.version += 1
     this.projects = this.projects.updated(this.projects.indexWhere(_.id == id), project)
     this.state_changes += (nextState -> project.id)
     project
@@ -47,9 +47,9 @@ object TodoProjectRepository {
       .toList.distinct.map(id => this.find(id))
       .sortWith((p1, p2) => p1.id > p2.id)
 
-  def getLaterVersionOrNull(id: Long, version: Int): TodoProject = {
-    val p = this.find(id)
-    if (p != null && p.version > version) p else null
-  }
+  def getIfUpdatedSinceState(state: Long, id: Long): TodoProject =
+    this.find(
+      this.state_changes.filterKeys(_ > state).find(_._2 == id).getOrElse((0L, 0L))._2
+    )
 }
 

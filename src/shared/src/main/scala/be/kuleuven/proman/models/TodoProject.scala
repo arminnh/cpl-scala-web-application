@@ -2,15 +2,14 @@ package be.kuleuven.proman.models
 
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import cats.syntax.either._
-
 import scalatags.generic.Bundle
 
 
-class TodoProject(var id: Long, var name: String, var description: String, var version: Int) {
-  def this(id: Long, name: String) = this(id, name, "Description of project " + name, 1)
+class TodoProject(var id: Long, var name: String, var description: String) {
+  def this(id: Long, name: String) = this(id, name, "Description of project " + name)
   def this(name: String) = this(-999, name)
 
-  override def toString: String = s"TodoProject ${this.id}, name: ${this.name}, version: ${this.version}\n"
+  override def toString: String = s"TodoProject ${this.id}, name: ${this.name}\n"
 }
 
 
@@ -19,8 +18,7 @@ object TodoProject {
     final def apply(p: TodoProject): Json = Json.obj(
       ("id", Json.fromLong(p.id)),
       ("name", Json.fromString(p.name)),
-      ("description", Json.fromString(p.description)),
-      ("version", Json.fromInt(p.version))
+      ("description", Json.fromString(p.description))
     )
   }
 
@@ -30,9 +28,8 @@ object TodoProject {
         id <- cursor.downField("id").as[Long]
         name <- cursor.downField("name").as[String]
         description <- cursor.downField("description").as[String]
-        version <- cursor.downField("version").as[Int]
       } yield {
-        new TodoProject(id, name, description, version)
+        new TodoProject(id, name, description)
       }
   }
 }
@@ -43,19 +40,9 @@ class TodoProjectTemplate[Builder, Output <: FragT, FragT](val bundle: Bundle[Bu
 
   def singleTemplate(project: TodoProject) = {
     tr(
-      td(verticalAlign := "middle")(project.id),
+      td(verticalAlign := "middle", width := 55)(project.id),
       td(verticalAlign := "middle")(
         button(attr("data-id") := project.id, cls := "project-anchor btn-link")(project.name)
-      )
-    )
-  }
-
-  def multipleTemplate(projects: Seq[TodoProject]) = {
-    div(cls := "table-responsive")(
-      table(cls := "table table-condensed table-striped table-hover")(
-        tbody(
-          projects.map(singleTemplate)
-        )
       )
     )
   }

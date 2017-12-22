@@ -2,11 +2,14 @@ package be.kuleuven.proman.repositories
 
 import be.kuleuven.proman.models.TodoEntry
 
+
 object TodoEntryRepository {
   private var id: Long = 0
   private var entries: Seq[TodoEntry] = Seq()
 
+  // Keep state as just a number that increments with every change to state.
   private var state: Long = 0
+  // Map to keep track which entry changed at which state.
   private var state_changes: Map[Long, Long] = Map()
 
   private def nextID: Long = { id += 1; id }
@@ -18,9 +21,6 @@ object TodoEntryRepository {
     this.state_changes += (nextState -> todo.id)
     todo
   }
-
-  def all(): Seq[TodoEntry] =
-    this.entries
 
   def allForProject(project_id: Long): Seq[TodoEntry] = {
     val list_ids: Seq[Long] = TodoListRepository.allForProject(project_id).map(_.id)

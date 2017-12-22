@@ -4,6 +4,6 @@ import be.kuleuven.proman.scenes._
 
 object ProManApp {
   def main(args: Array[String]): Unit = {
-    StartScene.setupScene()
+    StartScene.setupScene(firstSetup = true)
   }
 }

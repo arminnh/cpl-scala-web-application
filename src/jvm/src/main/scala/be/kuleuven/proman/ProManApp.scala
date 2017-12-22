@@ -1,88 +1,51 @@
 package be.kuleuven.proman
 
-import java.io.File
-
 import be.kuleuven.proman.controllers._
 import be.kuleuven.proman.repositories._
+import java.io.File
+import scala.io.StdIn
 import fs2.Task
 import fs2.interop.cats._
-
-import scala.io.StdIn
 import org.http4s._
 import org.http4s.dsl._
 import org.http4s.server.blaze.BlazeBuilder
-
-import scalatags.Text.all._
-import scalatags.Text.tags2.title
 
 object ProManApp extends App {
   // Extensions for files that can be served through the browser.
   val fileExtensions: List[String] = List("js", "css", "png", "map", "ico", "eot", "svg", "ttf", "woff", "woff2")
 
-  // Base html of the project.
-  val HTML = Ok {
-    html(
-      head(
-        meta(charset := "utf-8"),
-        meta(httpEquiv := "X-UA-Compatible", content := "IE=Edge"),
-        meta(httpEquiv := "Cache-Control", content := "no-cache, no-store, must-revalidate"),
-        meta(httpEquiv := "Pragma", content := "no-cache"),
-        meta(httpEquiv := "Expires", content := "0"),
-        meta(name := "viewport", content := "width=device-width, initial-scale=1"),
-        meta(name := "description", content := "Basic TODO web application"),
-        meta(name := "author", content := "Armin Halilovic"),
-        title("Todo Projects"),
-        link(href := "/jvm/src/assets/img/favicon.ico", rel := "icon"),
-        link(rel :="stylesheet", href := "/jvm/src/assets/css/bootstrap.css"),
-        script(tpe := "text/javascript", src := "/js/target/scala-2.11/js-fastopt.js", attr("defer").empty)
-      ),
-      body(
-        div(cls := "jumbotron")(div(id := "top-title", cls := "container")),
-        div(cls := "container", role := "main")(
-          div(id := "info-container", cls := "alert alert-info", style := "display: none;", marginTop := 20)(
-            "info message"
-          ),
-          div(id := "error-container", cls := "alert alert-danger", style := "display: none;", marginTop := 20)(
-            "error message"
-          ),
-          div(id := "content")
-        )
-      )
-    ).render
-  }.withType(MediaType.`text/html`)
-
   // Service that matches requests (at routes) to responses (by controller actions).
   val service: HttpService = HttpService {
     case GET      -> Root                                     => TemporaryRedirect(uri("/projects"))
-    case GET      -> Root/"projects"                          => HTML
 
-    case GET      -> Root/"projects"/"json"                   => TodoProjectsController.index
+    case GET      -> Root/"projects"                          => TodoProjectsController.index
     case r @ POST -> Root/"projects"/"store"                  => TodoProjectsController.store(r)
     case GET      -> Root/"project"/id                        => TodoProjectsController.get(id.toLong)
     case r @ PUT  -> Root/"project"/id                        => TodoProjectsController.update(r, id.toLong)
     case GET      -> Root/"project"/"exists"/name             => TodoProjectsController.exists(name)
-    case GET      -> Root/"projects"/"sync"/state             => TodoProjectsController.synchronise(state.toLong)
 
     case r @ POST -> Root/"lists"/"store"                     => TodoListsController.store(r)
     case r @ PUT  -> Root/"list"/id                           => TodoListsController.update(r, id.toLong)
-    case GET      -> Root/"lists"/"sync"/state/project_id     => TodoListsController.synchronise(state.toLong, project_id.toLong)
 
-    case GET      -> Root/"todos"/project_id/"json"           => TodoEntriesController.index(project_id.toLong)
     case r @ POST -> Root/"todos"/"store"                     => TodoEntriesController.store(r)
     case r @ PUT  -> Root/"todo"/id                           => TodoEntriesController.update(r, id.toLong)
-    case GET      -> Root/"todos"/"sync"/state/project_id/v   => TodoEntriesController.synchronise(state.toLong, project_id.toLong, v.toInt)
+
+    case GET      -> Root/"sync"/"projects"/state             => SynchronisationController.projects(state.toLong)
+    case GET      -> Root/"sync"/"projectWithListsAndTodos"/project_id/state_projects/state_lists/state_todos =>
+      SynchronisationController.projectWithListsAndTodos(project_id.toLong, state_projects.toLong, state_lists.toLong, state_todos.toLong)
+    // This beautiful URL was brought to you by http4s, the "interface for HTTP" that doesn't allow you to get query
+    // parameters out of a request object. Well, maybe it does. Who knows? Anyone who searched the documentation for
+    // this basic feature sure does not.
 
     // Serve some files with specific extensions
     case r @ GET  -> path~ext if fileExtensions.contains(ext) => static(path.toList.mkString("/") + "." + ext, r)
     // Catch all
-    case _        -> path                                     => NotFound("Not found!")
+    case _        -> _                                        => NotFound("Not found!")
   }
 
   // Serve a file
-  def static(filename: String, request: Request): Task[Response] = {
+  def static(filename: String, request: Request): Task[Response] =
     StaticFile.fromFile(new File("./" +  filename), Some(request)).getOrElseF(NotFound())
-    //StaticFile.fromResource("/" + filename, Some(request)).getOrElseF(NotFound())
-  }
 
   // Set up server that binds to localhost:8080/
   val server = BlazeBuilder.bindHttp(8080, "localhost").mountService(service, "/").run

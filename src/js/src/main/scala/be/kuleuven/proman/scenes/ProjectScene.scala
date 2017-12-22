@@ -3,29 +3,47 @@ package be.kuleuven.proman.scenes
 import be.kuleuven.proman._
 import be.kuleuven.proman.models._
 
-import scala.util.{Failure, Success}
 import scala.util.control.Breaks._
+import scala.util.{Failure, Success}
 import scala.concurrent.ExecutionContext.Implicits.global
-import io.circe.syntax._, io.circe.parser._, io.circe.Json
+import io.circe.syntax._, io.circe.parser._
 import cats.syntax.either._
-import org.scalajs.dom.raw.{HTMLElement, KeyboardEvent, MouseEvent}
-//import io.circe.generic.auto._
+import scala.scalajs.js.Any
+import scala.scalajs.js.timers.SetIntervalHandle
 import org.scalajs.dom
 import org.scalajs.dom.ext.Ajax
 import org.scalajs.dom.html._ // HTMLDivElement => Div
 import org.scalajs.dom.raw.{Event, NodeListOf}
+import org.scalajs.dom.raw.KeyboardEvent
 import scalatags.JsDom.all._ // Client side HTML Tags
-import scala.scalajs.js.Any
 
-//noinspection AccessorLikeMethodIsUnit
+
 object ProjectScene {
-  var state_entries: Long = -999
-  var state_lists: Long = -999
   var project: TodoProject = _
-  var synchronisation_interval: Int = -999
+  var state_projects: Long = _
+  var state_entries: Long = _
+  var state_lists: Long = _
+  var synchronisation_interval: SetIntervalHandle = _
   val todo_entry_ui = new TodoEntryTemplate(scalatags.JsDom)
   val todo_list_ui = new TodoListTemplate(scalatags.JsDom)
 
+  /**
+    * Sets up everything necessary for the current scene.
+    * @param project: The project that this scene will display.
+    */
+  def setupScene(project: TodoProject): Unit = {
+    this.project = project
+    this.state_projects = -999
+    this.state_entries = -999
+    this.state_lists = -999
+    this.setupHTML()
+    this.synchronise()
+    this.synchronisation_interval = scala.scalajs.js.timers.setInterval(2500) { synchronise() }
+  }
+
+  /**
+    * Sets up the HTML for the scene along with event handlers.
+    */
   def setupHTML(): Unit = {
     hideError()
 
@@ -150,48 +168,25 @@ object ProjectScene {
     })
 
     dom.document.getElementById("back-to-start").asInstanceOf[Button].onclick = Any.fromFunction1(_ => {
-      dom.window.clearInterval(this.synchronisation_interval)
+      scala.scalajs.js.timers.clearInterval(this.synchronisation_interval)
       StartScene.setupScene()
     })
 
     this.setupTodoListTable(dom.document.getElementById("todo-lists").firstChild.asInstanceOf[Div])
   }
 
-  def setupScene(project: TodoProject): Unit = {
-    this.project = project
-    this.state_entries = -999
-    this.state_lists = -999
-    this.setupHTML()
-    this.synchronise()
-    this.synchronisation_interval = dom.window.setInterval(Any.fromFunction0(() => synchronise()), 2500)
-  }
-
   /**
-    * Updates a todo's is_done value.
-    * @param tr: The row that represents the todo entry.
-    * @param is_done: The new is_done value.
+    * Creates a new table that represents a TodoList.
+    * @param list: The new TodoList.
     */
-  def updateTODOIsDoneStatus(tr: TableRow, is_done: Boolean): Unit = {
-    decode[TodoEntry](tr.getAttribute("data-json")) match {
-      case Left(error) => printError(error)
-      case Right(todo) =>
-        todo.is_done = is_done
+  def createTodoListTable(list: TodoList): Unit = {
+    val list_container = dom.document.getElementById("todo-lists").asInstanceOf[Div]
+    val new_list = list_container.insertBefore(
+      this.todo_list_ui.singleTemplate(list).render,
+      list_container.childNodes.item(this.getNewTodoListIndex(list.name))
+    ).asInstanceOf[Div]
 
-        Ajax.put("/todo/"+todo.id, todo.asJson.noSpaces).onComplete {
-          case Failure(error) => printError(error)
-          case Success(xhr) =>
-            val updatedM = decode[TodoEntry](xhr.responseText)
-
-            // move tr to other table
-            tr.parentNode.removeChild(tr)
-            this.createTodoInTable(todo)
-
-            updatedM match {
-              case Left(error) => printError(error)
-              case Right(updated) => tr.setAttribute("data-json", updated.asJson.noSpaces)
-            }
-        }
-    }
+    this.setupTodoListTable(new_list)
   }
 
   /**
@@ -209,17 +204,54 @@ object ProjectScene {
   }
 
   /**
-    * Creates a new table that represents a TodoList.
-    * @param list: The new TodoList.
+    * Creates a new TableRow in the correct table for a TodoEntry.
+    * @param new_todo: The new TodoEntry.
     */
-  def createTodoListTable(list: TodoList): Unit = {
-    val list_container = dom.document.getElementById("todo-lists").asInstanceOf[Div]
-    val new_list = list_container.insertBefore(
-      this.todo_list_ui.singleTemplate(list).render,
-      list_container.childNodes.item(this.getNewTodoListIndex(list.name))
-    ).asInstanceOf[Div]
+  def createTodoInTable(new_todo: TodoEntry): Unit = {
+    val querySelector = if (new_todo.is_done) "#finished-todo-tbody" else s"tbody.todo-list-tbody[data-id='${new_todo.list_id}']"
+    val tbody = dom.document.querySelector(querySelector).asInstanceOf[TableSection]
 
-    this.setupTodoListTable(new_list)
+    // Find index where to insert the new row at. The entries are in descending timestamp order.
+    var i = 0
+    breakable {
+      while (i < tbody.childElementCount) {
+        val timestamp = tbody.childNodes.item(i).asInstanceOf[TableRow]
+          .querySelector(".todo-timestamp").getAttribute("data-timestamp").toLong
+
+        if (new_todo.timestamp < timestamp) {
+          i += 1
+        } else {
+          break
+        }
+      }
+    }
+
+    // Create a new row at the correct position.
+    val tempRow = tbody.insertRow(i)
+    val newRow = tbody.insertBefore(todo_entry_ui.singleTemplate(new_todo).render, tempRow)
+    tbody.removeChild(tempRow)
+    this.setupTodoTableRow(newRow.asInstanceOf[TableRow])
+  }
+
+  /**
+    * Updates a todo's is_done value and moves it to the list that it belongs after the update.
+    * @param tr: The row that represents the todo entry.
+    * @param is_done: The new is_done value.
+    */
+  def updateTODOIsDoneStatus(tr: TableRow, is_done: Boolean): Unit = {
+    decode[TodoEntry](tr.getAttribute("data-json")) match {
+      case Left(error) => printError(error)
+      case Right(todo) =>
+        todo.is_done = is_done
+
+        Ajax.put("/todo/"+todo.id, todo.asJson.noSpaces).onComplete {
+          case Failure(error) => printError(error)
+          case Success(xhr) =>
+            // move tr to other table
+            tr.parentNode.removeChild(tr)
+            this.createTodoInTable(todo)
+        }
+    }
   }
 
   /**
@@ -276,36 +308,6 @@ object ProjectScene {
         }
       })
     }
-  }
-
-  /**
-    * Creates a new TableRow in the correct table for a TodoEntry.
-    * @param new_todo: The new TodoEntry.
-    */
-  def createTodoInTable(new_todo: TodoEntry): Unit = {
-    val querySelector = if (new_todo.is_done) "#finished-todo-tbody" else s"tbody.todo-list-tbody[data-id='${new_todo.list_id}']"
-    val tbody = dom.document.querySelector(querySelector).asInstanceOf[TableSection]
-
-    // Find index where to insert the new row at. The entries are in descending timestamp order.
-    var i = 0
-    breakable {
-      while (i < tbody.childElementCount) {
-        val timestamp = tbody.childNodes.item(i).asInstanceOf[TableRow]
-          .querySelector(".todo-timestamp").getAttribute("data-timestamp").toLong
-
-        if (new_todo.timestamp < timestamp) {
-          i += 1
-        } else {
-          break
-        }
-      }
-    }
-
-    // Create a new row at the correct position.
-    val tempRow = tbody.insertRow(i)
-    val newRow = tbody.insertBefore(todo_entry_ui.singleTemplate(new_todo).render, tempRow)
-    tbody.removeChild(tempRow)
-    this.setupTodoTableRow(newRow.asInstanceOf[TableRow])
   }
 
   /**
@@ -368,7 +370,7 @@ object ProjectScene {
   }
 
   /**
-    * Submits an update to the currently opened project's description.
+    * Submits an update to the currently opened project. Currently, only the description can be updated.
     * @param form: The form to be submitted.
     */
   def submitProjectUpdate(form: Form): Unit = {
@@ -389,8 +391,8 @@ object ProjectScene {
   }
 
   /**
-    * Submits a new TodoList for the currently opened project and
-    * inserts it into the view if it has been created successfully.
+    * Submits a new TodoList for the currently opened project and inserts it into the view if it has been created
+    * successfully.
     * @param form: The form to be submitted
     */
   def submitNewList(form: Form): Unit = {
@@ -444,38 +446,35 @@ object ProjectScene {
   }
 
   /**
-    * Synchronisation policy: Send the local state variable to the synchronisation route. The JSON response
-    * of the server will contain the latest state variable and a list of todos that have been updated or
-    * created since the last synchronisation.
+    * Synchronisation policy: Send local state variables to the synchronisation route. The JSON response of the server
+    * will contain the latest state variables and objects that have been created or updated since the last
+    * synchronisation. The updates are carried out, after which the local state variables are updated so that
+    * later synchronisations only return new changes to objects.
+    * An improvement on this would be to just send the timestamp of the last synchronisation. The server could then
+    * return changes to objects that happened after that timestamp. This would remove the 3 different state_ variables
+    * used right now.
     */
   def synchronise(): Unit = {
-    Ajax.get(s"lists/sync/${this.state_lists}/${this.project.id}").onComplete {
+    Ajax.get(s"sync/projectWithListsAndTodos/${this.project.id}/${this.state_projects}/${this.state_lists}/${this.state_entries}").onComplete {
       case Failure(error) => printError(error)
       case Success(xhr) =>
-        println(s"synchronising for list state: ${this.state_lists}, response: ${xhr.responseText}")
+        println(s"synchronising for states: project: ${this.state_projects}, list: ${this.state_lists}, todos: ${this.state_entries}")
+        println("response: " + xhr.responseText)
         parse(xhr.responseText) match {
           case Left(error) => printError(error)
           case Right(json) =>
-            this.updateLists(json.hcursor.downField("lists").as[Seq[TodoList]].getOrElse(List()))
-            this.state_lists = json.hcursor.downField("state").as[Long].getOrElse(this.state_lists)
-
-            Ajax.get(s"todos/sync/${this.state_entries}/${this.project.id}/${this.project.version}").onComplete {
-              case Failure(error) => printError(error)
-              case Success(xhr2) =>
-                println(s"synchronising for todo state: ${this.state_entries}, response: ${xhr2.responseText}")
-                parse(xhr2.responseText) match {
-                  case Left(error) => printError(error)
-                  case Right(json2) =>
-                    this.updateTodos(json2.hcursor.downField("todos").as[Seq[TodoEntry]].getOrElse(List()))
-                    this.state_entries = json2.hcursor.downField("state").as[Long].getOrElse(this.state_entries)
-
-                    val project: TodoProject = json2.hcursor.downField("project").as[TodoProject].getOrElse(null)
-                    if (project != null) {
-                      this.project = project
-                      dom.document.getElementById("project-description").innerHTML = this.project.description
-                    }
-                }
+            val project: TodoProject = json.hcursor.downField("project").as[TodoProject].getOrElse(null)
+            if (project != null) {
+              this.project = project
+              dom.document.getElementById("project-description").innerHTML = this.project.description
             }
+            this.state_projects = json.hcursor.downField("state_projects").as[Long].getOrElse(this.state_lists)
+
+            this.updateLists(json.hcursor.downField("lists").as[Seq[TodoList]].getOrElse(List()))
+            this.state_lists = json.hcursor.downField("state_lists").as[Long].getOrElse(this.state_lists)
+
+            this.updateTodos(json.hcursor.downField("todos").as[Seq[TodoEntry]].getOrElse(List()))
+            this.state_entries = json.hcursor.downField("state_todos").as[Long].getOrElse(this.state_entries)
         }
     }
   }

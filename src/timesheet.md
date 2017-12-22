@@ -1,15 +1,3 @@
-All lists can be hidden.  
-Lists in the ProjectScene are sorted by name.
-
-**Synchronisation state improvement:**
-* todo_changes(project_id, list_id, entry_id, timestamp)
-* Views synchronize on timestamp
-* Example query for ProjectScene: select * from todo_entries where id in (select entry_id from todo_changes where timestamp > ?) 
-
-## TODO
-* extension: Render as much as you can on the server (e.g. initial project list should be rendered on the server): Move some html bits to a new shared class. e.g. lazy val start_scene_title = div(h1(...)).render.innerHTML
-add these things in the response in the controllers and replace the html bits in the scene js code.
-
 ## Timesheet
 * 03h20: First setup, learn about scala project structure. Created first 2 models and 2 controllers. Created root page that shows the projects in a list.
 * 06h00: TODO encoders/decoders. First attempt at storing new projects. Updated homepage. Updated routes. Suffered through worthless documentation and non existing forum posts. Trying to figure out the worthless "The request body was malformed." error message.
@@ -41,7 +29,18 @@ add these things in the response in the controllers and replace the html bits in
     * Lists are sorted alphabetically.
     * Added list_id select in create_entry form.
     * Updated ProjectScene input forms in view. 
-* 01h30: Multiple lists extension + search extension finished
+* 01h50: 
+    * Multiple lists extension + search extension finished
+    * New ProjectLists now get inserted in the correct alphabetical order in the "list_id" select.
+* 01h00: Filled in extensions file + minor updates to code
+* 02h00: Wasted another ton of time to try to get the most basic functionality of sending a custom json object and 
+         parsing it on the server to work. Gave up and just left the data in the URL. God damn I fucking hate http4s. 
+         Is it that hard to just provide request.get("parameter") method?
+* 01h00: Updates to synchronisation
+    * Moved synchronisation functions to SynchronisationController and replaced multiple requests by one request on ProjectScene.
+    * Fixed mistake in synchronisation of projects when descriptions are updated. 
+* 02h15: 
+    * Server side rendering of initial list 
+    * Clean up project code / remove unnecessary code / update extensions file text
 ---
-Total: **46h45**
-
+Total: **53h20**
