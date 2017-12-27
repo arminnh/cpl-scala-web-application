@@ -20,9 +20,7 @@ import scalatags.JsDom.all._ // Client side HTML Tags
 
 object ProjectScene {
   var project: TodoProject = _
-  var state_projects: Long = _
-  var state_entries: Long = _
-  var state_lists: Long = _
+  var synchronisation_timestamp: Long = _
   var synchronisation_interval: SetIntervalHandle = _
   val todo_entry_ui = new TodoEntryTemplate(scalatags.JsDom)
   val todo_list_ui = new TodoListTemplate(scalatags.JsDom)
@@ -33,12 +31,10 @@ object ProjectScene {
     */
   def setupScene(project: TodoProject): Unit = {
     this.project = project
-    this.state_projects = -999
-    this.state_entries = -999
-    this.state_lists = -999
+    this.synchronisation_timestamp = 0
     this.setupHTML()
     this.synchronise()
-    this.synchronisation_interval = scala.scalajs.js.timers.setInterval(2500) { synchronise() }
+    this.synchronisation_interval = scala.scalajs.js.timers.setInterval(500) { synchronise() }
   }
 
   /**
@@ -455,10 +451,10 @@ object ProjectScene {
     * used right now.
     */
   def synchronise(): Unit = {
-    Ajax.get(s"sync/projectWithListsAndTodos/${this.project.id}/${this.state_projects}/${this.state_lists}/${this.state_entries}").onComplete {
+    Ajax.get(s"sync/projectWithListsAndTodos/${this.project.id}/${this.synchronisation_timestamp}").onComplete {
       case Failure(error) => printError(error)
       case Success(xhr) =>
-        println(s"synchronising for states: project: ${this.state_projects}, list: ${this.state_lists}, todos: ${this.state_entries}")
+        println(s"synchronising for timestamp: ${formatTimeStamp(this.synchronisation_timestamp)}")
         println("response: " + xhr.responseText)
         parse(xhr.responseText) match {
           case Left(error) => printError(error)
@@ -468,13 +464,11 @@ object ProjectScene {
               this.project = project
               dom.document.getElementById("project-description").innerHTML = this.project.description
             }
-            this.state_projects = json.hcursor.downField("state_projects").as[Long].getOrElse(this.state_lists)
 
             this.updateLists(json.hcursor.downField("lists").as[Seq[TodoList]].getOrElse(List()))
-            this.state_lists = json.hcursor.downField("state_lists").as[Long].getOrElse(this.state_lists)
-
             this.updateTodos(json.hcursor.downField("todos").as[Seq[TodoEntry]].getOrElse(List()))
-            this.state_entries = json.hcursor.downField("state_todos").as[Long].getOrElse(this.state_entries)
+
+            this.synchronisation_timestamp = json.hcursor.downField("timestamp").as[Long].getOrElse(this.synchronisation_timestamp)
         }
     }
   }

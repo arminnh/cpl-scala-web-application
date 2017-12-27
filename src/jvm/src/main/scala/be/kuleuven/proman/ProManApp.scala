@@ -30,9 +30,9 @@ object ProManApp extends App {
     case r @ POST -> Root/"todos"/"store"                     => TodoEntriesController.store(r)
     case r @ PUT  -> Root/"todo"/id                           => TodoEntriesController.update(r, id.toLong)
 
-    case GET      -> Root/"sync"/"projects"/state             => SynchronisationController.projects(state.toLong)
-    case GET      -> Root/"sync"/"projectWithListsAndTodos"/project_id/state_projects/state_lists/state_todos =>
-      SynchronisationController.projectWithListsAndTodos(project_id.toLong, state_projects.toLong, state_lists.toLong, state_todos.toLong)
+    case GET      -> Root/"sync"/"projects"/timestamp         => SynchronisationController.projects(timestamp.toLong)
+    case GET      -> Root/"sync"/"projectWithListsAndTodos"/project_id/timestamp =>
+      SynchronisationController.projectWithListsAndTodos(project_id.toLong, timestamp.toLong)
     // This beautiful URL was brought to you by http4s, the "interface for HTTP" that doesn't allow you to get query
     // parameters out of a request object. Well, maybe it does. Who knows? Anyone who searched the documentation for
     // this basic feature sure does not.
@@ -58,7 +58,7 @@ object ProManApp extends App {
     (2L, "Exercise 1"), (2L, "Exercise 2"), (2L, "Exercise 3"),
     (3L, "Thesis text"), (3L, "Isolation forest experiments"), (3L, "Literature to read")
   ).foreach {
-    case (p_id: Long, name: String) => Thread.sleep(15); TodoListRepository.create(p_id, name)
+    case (p_id: Long, name: String) => TodoListRepository.create(p_id, name)
   }
 
   List(
@@ -70,8 +70,8 @@ object ProManApp extends App {
     (8L, "More trees", true), (8L, "Higher sampling"), (8L, "better features"), (8L, "Plot anomalies on PCA"),
     (9L, "improved dtw"), (9L, "tensor decomposition"), (9L, "time series discord"), (9L, "series feature extraction")
   ).foreach {
-    case (l_id: Long, text: String) => Thread.sleep(15); TodoEntryRepository.create(l_id, text)
-    case (l_id: Long, text: String, is_done: Boolean) => Thread.sleep(15); TodoEntryRepository.create(l_id, text, is_done)
+    case (l_id: Long, text: String) => TodoEntryRepository.create(l_id, text)
+    case (l_id: Long, text: String, is_done: Boolean) => TodoEntryRepository.create(l_id, text, is_done)
   }
 
   println("SERVER NOW RUNNING")

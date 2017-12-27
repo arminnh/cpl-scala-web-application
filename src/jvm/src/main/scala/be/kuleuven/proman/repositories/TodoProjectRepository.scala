@@ -1,26 +1,22 @@
 package be.kuleuven.proman.repositories
 
 import be.kuleuven.proman.models.TodoProject
+import scala.collection.mutable.{ HashMap, MultiMap, Set }
 
 
 object TodoProjectRepository {
   private var id: Long = 0
   private var projects: Seq[TodoProject] = Seq()
 
-  // Keep state as just a number that increments with every change to state.
-  // Will be good enough for the given requirements.
-  private var state: Long = 0
-  // Map to keep track which project changed at which state. A smarter policy would remove all entries which
-  // are not relevant anymore (this is when all current clients are up to date with a certain common state).
-  private var state_changes: Map[Long, Long] = Map()
+  // Map to keep track which project changed at which timestamp.
+  private val changes = new HashMap[Long, Set[Long]] with MultiMap[Long, Long]
 
   private def nextID: Long = { id += 1; id }
-  private def nextState: Long = { state += 1; state }
 
   def create(name: String): TodoProject = {
     val project = new TodoProject(nextID, name)
     this.projects = project +: this.projects
-    this.state_changes += (nextState -> project.id)
+    this.changes.addBinding(System.currentTimeMillis(), project.id)
     project
   }
 
@@ -35,21 +31,18 @@ object TodoProjectRepository {
 
   def update(id: Long, project: TodoProject): TodoProject = {
     this.projects = this.projects.updated(this.projects.indexWhere(_.id == id), project)
-    this.state_changes += (nextState -> project.id)
+    this.changes.addBinding(System.currentTimeMillis(), project.id)
     project
   }
 
-  def getState: Long =
-    this.state
+  def allUpdatedSince(timestamp: Long): List[TodoProject] =
+    this.changes.filterKeys(_ >= timestamp).values.toList
+      .flatten.distinct.sorted(Ordering[Long].reverse).map(id => this.find(id))
 
-  def allUpdatedSinceState(state: Long): List[TodoProject] =
-    this.state_changes.filterKeys(key => key > state).values
-      .toList.distinct.map(id => this.find(id))
-      .sortWith((p1, p2) => p1.id > p2.id)
-
-  def getIfUpdatedSinceState(state: Long, id: Long): TodoProject =
+  def getIfUpdatedSince(timestamp: Long, id: Long): TodoProject =
     this.find(
-      this.state_changes.filterKeys(_ > state).find(_._2 == id).getOrElse((0L, 0L))._2
+//      this.changes.filterKeys(_ >= timestamp).find(_._2 == id).getOrElse((0L, 0L))._2
+      this.changes.filterKeys(_ >= timestamp).values.toList.flatten.find(_ == id).getOrElse(0)
     )
 }
 

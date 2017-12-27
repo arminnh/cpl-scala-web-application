@@ -17,7 +17,7 @@ import scalatags.JsDom.all._ // Client side HTML Tags
 
 
 object StartScene {
-  var state_projects: Long = _
+  var synchronisation_timestamp: Long = _
   var synchronisation_interval: SetIntervalHandle = _
   val todo_project_ui = new TodoProjectTemplate(scalatags.JsDom)
 
@@ -26,10 +26,10 @@ object StartScene {
     * @param firstSetup: Denotes whether or not this is the first time this scene is loaded for the current client.
     */
   def setupScene(firstSetup: Boolean = false): Unit = {
-    this.state_projects = -999
+    this.synchronisation_timestamp = 0
     this.setupHTML(firstSetup)
     this.synchronise()
-    this.synchronisation_interval = scala.scalajs.js.timers.setInterval(2500) { synchronise() }
+    this.synchronisation_interval = scala.scalajs.js.timers.setInterval(500) { synchronise() }
   }
 
   /**
@@ -157,17 +157,17 @@ object StartScene {
     * since the last synchronisation.
     */
   def synchronise(): Unit = {
-    Ajax.get("sync/projects/" + this.state_projects).onComplete {
+    Ajax.get("sync/projects/" + this.synchronisation_timestamp).onComplete {
       case Failure(error) => printError(error)
       case Success(xhr) =>
-        println("synchronising for state: " + this.state_projects + ", response: " + xhr.responseText)
+        println("synchronising for timestamp: " + formatTimeStamp(this.synchronisation_timestamp) + ", response: " + xhr.responseText)
         parse(xhr.responseText) match {
           case Left(error) => printError(error)
           case Right(json) =>
             val projects: Seq[TodoProject] = json.hcursor.downField("projects").as[Seq[TodoProject]].getOrElse(List())
             this.updateProjects(projects)
 
-            this.state_projects = json.hcursor.downField("state").as[Long].getOrElse(this.state_projects)
+            this.synchronisation_timestamp = json.hcursor.downField("timestamp").as[Long].getOrElse(this.synchronisation_timestamp)
         }
     }
   }
