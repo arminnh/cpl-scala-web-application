@@ -3,7 +3,6 @@ package be.kuleuven.proman.models
 import io.circe.{Decoder, Encoder, HCursor, Json}
 import io.circe.syntax._
 import cats.syntax.either._
-
 import scalatags.generic.Bundle
 
 
