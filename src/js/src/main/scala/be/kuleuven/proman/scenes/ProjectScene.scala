@@ -34,7 +34,7 @@ object ProjectScene {
     this.synchronisation_timestamp = 0
     this.setupHTML()
     this.synchronise()
-    this.synchronisation_interval = scala.scalajs.js.timers.setInterval(500) { synchronise() }
+    this.synchronisation_interval = scala.scalajs.js.timers.setInterval(10000) { synchronise() }
   }
 
   /**

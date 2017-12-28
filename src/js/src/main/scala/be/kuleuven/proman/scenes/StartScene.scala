@@ -29,7 +29,7 @@ object StartScene {
     this.synchronisation_timestamp = 0
     this.setupHTML(firstSetup)
     this.synchronise()
-    this.synchronisation_interval = scala.scalajs.js.timers.setInterval(500) { synchronise() }
+    this.synchronisation_interval = scala.scalajs.js.timers.setInterval(10000) { synchronise() }
   }
 
   /**

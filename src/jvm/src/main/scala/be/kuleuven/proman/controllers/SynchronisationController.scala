@@ -10,18 +10,12 @@ import org.http4s.Response
 
 object SynchronisationController {
 
-  def projects(timestamp: Long): Task[Response] = {
-    try {
-      Ok(
-        s"""{
+  def projects(timestamp: Long): Task[Response] = Ok(
+    s"""{
       "timestamp": ${System.currentTimeMillis()},
       "projects": ${TodoProjectRepository.allUpdatedSince(timestamp).asJson.noSpaces}
     }"""
-      )
-    } catch {
-      case e => println(e) ; e.printStackTrace() ; Ok()
-    }
-  }
+  )
 
   def projectWithListsAndTodos(project_id: Long, timestamp: Long): Task[Response] = Ok(
     s"""{

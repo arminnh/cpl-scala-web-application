@@ -33,9 +33,10 @@
     * Multiple lists extension + search extension finished
     * New ProjectLists now get inserted in the correct alphabetical order in the "list_id" select.
 * 01h00: Filled in extensions file + minor updates to code
-* 02h00: Wasted another ton of time to try to get the most basic functionality of sending a custom json object and 
-         parsing it on the server to work. Gave up and just left the data in the URL. God damn I fucking hate http4s. 
-         Is it that hard to just provide request.get("parameter") method?
+* 02h00: 
+    Wasted another ton of time to try to get the most basic functionality of sending a custom json object and 
+    parsing it on the server to work. Gave up and just left the data in the URL. God damn I fucking hate http4s. 
+    Is it that hard to just provide request.get("parameter") method?
 * 02h00: Updates to synchronisation
     * Moved synchronisation functions to SynchronisationController and replaced multiple requests by one request on ProjectScene.
     * Updated synchronisation to work with timestamps instead of incrementing state variables.
