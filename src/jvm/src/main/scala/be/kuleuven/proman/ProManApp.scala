@@ -11,8 +11,6 @@ import org.http4s.dsl._
 import org.http4s.server.blaze.BlazeBuilder
 
 object ProManApp extends App {
-  // Extensions for files that can be served through the browser.
-  val fileExtensions: List[String] = List("js", "css", "png", "map", "ico", "eot", "svg", "ttf", "woff", "woff2")
 
   // Service that matches requests (at routes) to responses (by controller actions).
   val service: HttpService = HttpService {
@@ -31,21 +29,20 @@ object ProManApp extends App {
     case r @ PUT  -> Root/"todo"/id                           => TodoEntriesController.update(r, id.toLong)
 
     case GET      -> Root/"sync"/"projects"/timestamp         => SynchronisationController.projects(timestamp.toLong)
-    case GET      -> Root/"sync"/"projectWithListsAndTodos"/project_id/timestamp =>
-      SynchronisationController.projectWithListsAndTodos(project_id.toLong, timestamp.toLong)
-    // This beautiful URL was brought to you by http4s, the "interface for HTTP" that doesn't allow you to get query
-    // parameters out of a request object. Well, maybe it does. Who knows? Anyone who searched the documentation for
-    // this basic feature sure does not.
+    case GET      -> Root/"sync"/"todos"/project_id/timestamp => SynchronisationController.projectWithListsAndTodos(project_id.toLong, timestamp.toLong)
 
-    // Serve some files with specific extensions
-    case r @ GET  -> path~ext if fileExtensions.contains(ext) => static(path.toList.mkString("/") + "." + ext, r)
+    // Serve the Scala.js code
+    case r @ GET  -> Root/"js"                                => staticFile("/js/target/scala-2.11/js-fastopt.js", r)
+    // Serve static files in the public directory
+    case r @ GET  -> path if path.startsWith(Path("public"))  => staticFile(path.toString, r)
+
     // Catch all
     case _        -> _                                        => NotFound("Not found!")
   }
 
   // Serve a file
-  def static(filename: String, request: Request): Task[Response] =
-    StaticFile.fromFile(new File("./" +  filename), Some(request)).getOrElseF(NotFound())
+  def staticFile(filename: String, request: Request): Task[Response] =
+    StaticFile.fromFile(new File("./" + filename), Some(request)).getOrElseF(NotFound("File not found!"))
 
   // Set up server that binds to localhost:8080/
   val server = BlazeBuilder.bindHttp(8080, "localhost").mountService(service, "/").run

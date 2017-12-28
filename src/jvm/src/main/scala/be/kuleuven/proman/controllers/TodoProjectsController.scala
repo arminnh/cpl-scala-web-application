@@ -30,9 +30,9 @@ object TodoProjectsController {
           meta(name := "description", content := "Basic TODO web application"),
           meta(name := "author", content := "Armin Halilovic"),
           title("Todo Projects"),
-          link(href := "/jvm/src/assets/img/favicon.ico", rel := "icon"),
-          link(rel := "stylesheet", href := "/jvm/src/assets/css/bootstrap.css"),
-          script(tpe := "text/javascript", src := "/js/target/scala-2.11/js-fastopt.js", attr("defer").empty)
+          link(href := "/public/img/favicon.ico", rel := "icon"),
+          link(rel := "stylesheet", href := "/public/css/bootstrap.css"),
+          script(tpe := "text/javascript", src := "/js", attr("defer").empty)
         ),
         body(
           div(cls := "jumbotron")(div(id := "top-title", cls := "container")(h1(fontSize := 36)("Todo Projects"))),

@@ -36,11 +36,13 @@
 * 02h00: Wasted another ton of time to try to get the most basic functionality of sending a custom json object and 
          parsing it on the server to work. Gave up and just left the data in the URL. God damn I fucking hate http4s. 
          Is it that hard to just provide request.get("parameter") method?
-* 01h00: Updates to synchronisation
+* 02h00: Updates to synchronisation
     * Moved synchronisation functions to SynchronisationController and replaced multiple requests by one request on ProjectScene.
+    * Updated synchronisation to work with timestamps instead of incrementing state variables.
     * Fixed mistake in synchronisation of projects when descriptions are updated. 
 * 02h15: 
     * Server side rendering of initial list 
     * Clean up project code / remove unnecessary code / update extensions file text
+* 00h30: Finished extensions.md file. 
 ---
-Total: **53h20**
+Total: **54h50**

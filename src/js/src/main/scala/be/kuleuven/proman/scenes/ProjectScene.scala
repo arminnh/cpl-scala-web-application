@@ -442,20 +442,15 @@ object ProjectScene {
   }
 
   /**
-    * Synchronisation policy: Send local state variables to the synchronisation route. The JSON response of the server
-    * will contain the latest state variables and objects that have been created or updated since the last
-    * synchronisation. The updates are carried out, after which the local state variables are updated so that
-    * later synchronisations only return new changes to objects.
-    * An improvement on this would be to just send the timestamp of the last synchronisation. The server could then
-    * return changes to objects that happened after that timestamp. This would remove the 3 different state_ variables
-    * used right now.
+    * Synchronisation policy: Send project id and the local sync timestamp to the synchronisation route. The JSON
+    * response of the server will contain a new timestamp for future sync requests along with objects that have been
+    * created or updated since the last synchronisation.
     */
   def synchronise(): Unit = {
-    Ajax.get(s"sync/projectWithListsAndTodos/${this.project.id}/${this.synchronisation_timestamp}").onComplete {
+    Ajax.get(s"sync/todos/${this.project.id}/${this.synchronisation_timestamp}").onComplete {
       case Failure(error) => printError(error)
       case Success(xhr) =>
-        println(s"synchronising for timestamp: ${formatTimeStamp(this.synchronisation_timestamp)}")
-        println("response: " + xhr.responseText)
+        println(s"synchronising for timestamp: ${formatTimeStamp(this.synchronisation_timestamp)}, response: " + xhr.responseText)
         parse(xhr.responseText) match {
           case Left(error) => printError(error)
           case Right(json) =>

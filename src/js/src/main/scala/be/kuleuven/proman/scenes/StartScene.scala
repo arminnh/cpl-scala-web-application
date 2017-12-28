@@ -152,9 +152,9 @@ object StartScene {
   }
 
   /**
-    * Synchronisation policy: Send the local state variable to the synchronisation route. The JSON response
-    * of the server will contain the latest state variable and a list of projects that have been created/updated
-    * since the last synchronisation.
+    * Synchronisation policy: Send the local sync timestamp to the synchronisation route. The JSON response
+    * of the server will contain a new timestamp for future sync requests along with a list of projects that have been
+    * created/updated since the last synchronisation.
     */
   def synchronise(): Unit = {
     Ajax.get("sync/projects/" + this.synchronisation_timestamp).onComplete {
